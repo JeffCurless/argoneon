@@ -89,23 +89,23 @@ daemonconfigfile=/etc/$daemonname.conf
 daemonfanservice=/lib/systemd/system/$daemonname.service
 
 # Fan Config Script
-sudo curl -L $ARGONDOWNLOADSERVER/argonone-fanconfig.sh -o $fanconfigscript 
+sudo curl -L $ARGONDOWNLOADSERVER/argonone-fanconfig.sh -o $fanconfigscript --silent 
 sudo chmod 755 $fanconfigscript
 
 
 # Fan Daemon/Service Files
-sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript 
-sudo curl -L $ARGONDOWNLOADSERVER/argononed.service -o $daemonfanservice 
+sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript --silent 
+sudo curl -L $ARGONDOWNLOADSERVER/argononed.service -o $daemonfanservice --silent
 sudo chmod 644 $daemonfanservice
 
 # IR Files
-sudo curl -L $ARGONDOWNLOADSERVER/argonone-irconfig.sh -o $irconfigscript 
+sudo curl -L $ARGONDOWNLOADSERVER/argonone-irconfig.sh -o $irconfigscript --silent 
 sudo chmod 755 $irconfigscript
 
 # Other utility scripts
-sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py 
+sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py --silent 
 
-sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript 
+sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript --silent
 
 
 # Generate default Fan config file if non-existent
@@ -160,17 +160,17 @@ then
 
 
 	# RTC Config Script
-	sudo curl -L $ARGONDOWNLOADSERVER/argoneon-rtcconfig.sh -o $rtcconfigscript 
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneon-rtcconfig.sh -o $rtcconfigscript --silent 
 	sudo chmod 755 $rtcconfigscript
 
 	# RTC Daemon/Service Files
-	sudo curl -L $ARGONDOWNLOADSERVER/argoneond.py -o $rtcdaemonscript 
-	sudo curl -L $ARGONDOWNLOADSERVER/argoneond.service -o $daemonrtcservice 
-	sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript 
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneond.py -o $rtcdaemonscript --silent
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneond.service -o $daemonrtcservice --silent
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript --silent
 	sudo chmod 644 $daemonrtcservice
 
 	# OLED Config Script
-	sudo curl -L $ARGONDOWNLOADSERVER/argoneon-oledconfig.sh -o $oledconfigscript 
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneon-oledconfig.sh -o $oledconfigscript --silent 
 	sudo chmod 755 $oledconfigscript
 
 
@@ -181,7 +181,7 @@ then
 
 	for binfile in font8x6 font16x12 font32x24 font64x48 font16x8 font24x16 font48x32 bgdefault bgram bgip bgtemp bgcpu bgraid bgstorage bgtime
 	do
-		sudo curl -L $ARGONDOWNLOADSERVER/oled/${binfile}.bin -o $INSTALLATIONFOLDER/oled/${binfile}.bin 
+		sudo curl -L $ARGONDOWNLOADSERVER/oled/${binfile}.bin -o $INSTALLATIONFOLDER/oled/${binfile}.bin --silent 
 	done
 
 
@@ -189,11 +189,11 @@ fi
 
 
 # Argon Uninstall Script
-sudo  curl -L $ARGONDOWNLOADSERVER/argon-uninstall.sh -o $uninstallscript 
+sudo  curl -L $ARGONDOWNLOADSERVER/argon-uninstall.sh -o $uninstallscript --silent
 sudo chmod 755 $uninstallscript
 
 # Argon Shutdown script
-sudo curl -L $ARGONDOWNLOADSERVER/argon-shutdown.sh -o $shutdownscript 
+sudo curl -L $ARGONDOWNLOADSERVER/argon-shutdown.sh -o $shutdownscript --silent
 sudo chmod 755 $shutdownscript
 
 # Argon Config Script
