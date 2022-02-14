@@ -5,8 +5,7 @@ echo " Argon Setup  "
 echo "*************"
 
 # Helper variables
-ARGONDOWNLOADSERVER=https://download.argon40.com
-
+ARGONDOWNLOADSERVER=https://raw.githubusercontent.com/JeffCurless/argoneon/main/
 INSTALLATIONFOLDER=/etc/argon
 
 uninstallscript=$INSTALLATIONFOLDER/argon-uninstall.sh
@@ -90,23 +89,23 @@ daemonconfigfile=/etc/$daemonname.conf
 daemonfanservice=/lib/systemd/system/$daemonname.service
 
 # Fan Config Script
-sudo wget $ARGONDOWNLOADSERVER/scripts/argonone-fanconfig.sh -O $fanconfigscript --quiet
+sudo curl -L $ARGONDOWNLOADSERVER/argonone-fanconfig.sh -o $fanconfigscript 
 sudo chmod 755 $fanconfigscript
 
 
 # Fan Daemon/Service Files
-sudo wget $ARGONDOWNLOADSERVER/scripts/argononed.py -O $powerbuttonscript --quiet
-sudo wget $ARGONDOWNLOADSERVER/scripts/argononed.service -O $daemonfanservice --quiet
+sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript 
+sudo curl -L $ARGONDOWNLOADSERVER/argononed.service -o $daemonfanservice 
 sudo chmod 644 $daemonfanservice
 
 # IR Files
-sudo wget $ARGONDOWNLOADSERVER/scripts/argonone-irconfig.sh -O $irconfigscript --quiet
+sudo curl -L $ARGONDOWNLOADSERVER/argonone-irconfig.sh -o $irconfigscript 
 sudo chmod 755 $irconfigscript
 
 # Other utility scripts
-sudo wget $ARGONDOWNLOADSERVER/scripts/argonsysinfo.py -O $INSTALLATIONFOLDER/argonsysinfo.py --quiet
+sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py 
 
-sudo wget $ARGONDOWNLOADSERVER/scripts/argononed.py -O $powerbuttonscript --quiet
+sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript 
 
 
 # Generate default Fan config file if non-existent
@@ -161,17 +160,17 @@ then
 
 
 	# RTC Config Script
-	sudo wget $ARGONDOWNLOADSERVER/scripts/argoneon-rtcconfig.sh -O $rtcconfigscript --quiet
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneon-rtcconfig.sh -o $rtcconfigscript 
 	sudo chmod 755 $rtcconfigscript
 
 	# RTC Daemon/Service Files
-	sudo wget $ARGONDOWNLOADSERVER/scripts/argoneond.py -O $rtcdaemonscript --quiet
-	sudo wget $ARGONDOWNLOADSERVER/scripts/argoneond.service -O $daemonrtcservice --quiet
-	sudo wget $ARGONDOWNLOADSERVER/scripts/argoneonoled.py -O $oledlibscript --quiet
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneond.py -o $rtcdaemonscript 
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneond.service -o $daemonrtcservice 
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript 
 	sudo chmod 644 $daemonrtcservice
 
 	# OLED Config Script
-	sudo wget $ARGONDOWNLOADSERVER/scripts/argoneon-oledconfig.sh -O $oledconfigscript --quiet
+	sudo curl -L $ARGONDOWNLOADSERVER/argoneon-oledconfig.sh -o $oledconfigscript 
 	sudo chmod 755 $oledconfigscript
 
 
@@ -182,7 +181,7 @@ then
 
 	for binfile in font8x6 font16x12 font32x24 font64x48 font16x8 font24x16 font48x32 bgdefault bgram bgip bgtemp bgcpu bgraid bgstorage bgtime
 	do
-		sudo wget $ARGONDOWNLOADSERVER/oled/${binfile}.bin -O $INSTALLATIONFOLDER/oled/${binfile}.bin --quiet
+		sudo curl -L $ARGONDOWNLOADSERVER/oled/${binfile}.bin -o $INSTALLATIONFOLDER/oled/${binfile}.bin 
 	done
 
 
@@ -190,11 +189,11 @@ fi
 
 
 # Argon Uninstall Script
-sudo wget $ARGONDOWNLOADSERVER/scripts/argon-uninstall.sh -O $uninstallscript --quiet
+sudo  curl -L $ARGONDOWNLOADSERVER/argon-uninstall.sh -o $uninstallscript 
 sudo chmod 755 $uninstallscript
 
 # Argon Shutdown script
-sudo wget $ARGONDOWNLOADSERVER/scripts/argon-shutdown.sh -O $shutdownscript --quiet
+sudo curl -L $ARGONDOWNLOADSERVER/argon-shutdown.sh -o $shutdownscript 
 sudo chmod 755 $shutdownscript
 
 # Argon Config Script
@@ -310,7 +309,7 @@ then
 	then
 		imagefile=argoneon.png
 	fi
-	sudo wget http://download.argon40.com/$imagefile -O /usr/share/pixmaps/$imagefile --quiet
+	sudo wget http://download.argon40.com/$imagefile -O /usr/share/pixmaps/$imagefile 
 	if [ -f $shortcutfile ]; then
 		sudo rm $shortcutfile
 	fi

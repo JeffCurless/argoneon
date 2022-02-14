@@ -7,6 +7,7 @@
 import os
 import time
 import socket
+import psutil
 
 def argonsysinfo_listcpuusage(sleepsec = 1):
     outputlist = []
@@ -152,6 +153,18 @@ def argonsysinfo_getip():
         st.close()
     return ipaddr
 
+def get_ip_addresses( family ):
+    for interface, snics in psutil.net_if_addrs().items():
+        if interface != "lo":
+            for snic in snics:
+                if snic.family == family:
+                    yield( interface, snic.address )
+
+def argonsysinfo_getipList():
+    iplist = []
+    iplist = list(get_ip_addresses( socket.AF_INET ))
+
+    return iplist
 
 def argonsysinfo_getrootdev():
     tmp = os.popen('mount').read()
@@ -176,7 +189,6 @@ def argonsysinfo_listhddusage():
     raidctr = 0
     while raidctr < len(raidlist['raidlist']):
         raiddevlist.append(raidlist['raidlist'][raidctr]['title'])
-        #outputobj[raidlist['raidlist'][raidctr]['title']] = {"used":int(raidlist['raidlist'][raidctr]['info']['used']), "total":int(raidlist['raidlist'][raidctr]['info']['size'])}
         raidctr = raidctr + 1
 
     rootdev = argonsysinfo_getrootdev()
@@ -203,15 +215,16 @@ def argonsysinfo_listhddusage():
             tmpidx = curdev.rfind("/")
             if tmpidx >= 0:
                 curdev = curdev[tmpidx+1:]
-
+            #
+            # Throw out all devices being used by raid
+            #
             if curdev in raidlist['hddlist']:
                 continue
-            elif curdev in raiddevlist:
-                curdev = curdev
-            elif curdev[0:2] == "sd" or curdev[0:2] == "hd":
-                curdev = curdev[0:-1]
-            else:
-                curdev = curdev[0:-2]
+            elif curdev not in raiddevlist:
+              if curdev[0:2] == "sd" or curdev[0:2] == "hd":
+                  curdev = curdev[0:-1]
+              else:
+                  curdev = curdev[0:-2]
             if curdev in outputobj:
                 outputobj[curdev] = {"used":outputobj[curdev]['used']+int(infolist[2]), "total":outputobj[curdev]['total']+int(infolist[1])}
             else:
