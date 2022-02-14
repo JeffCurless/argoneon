@@ -319,9 +319,18 @@ def display_loop(readq):
                 oled_writetextaligned(tmpitem["title"], 0, 0, stdleftoffset, 1, fontwdSml)
                 oled_writetextaligned(tmpitem["value"], 0, 8, stdleftoffset, 1, fontwdSml)
                 oled_writetextaligned(argonsysinfo_kbstr(tmpitem["info"]["size"]), 0, 56, stdleftoffset, 1, fontwdSml)
-
-                oled_writetext("Used:"+argonsysinfo_kbstr(tmpitem["info"]["used"]), stdleftoffset, 8, fontwdSml)
-                oled_writetext("      "+str(int(100*tmpitem["info"]["used"]/tmpitem["info"]["size"]))+"%", stdleftoffset, 16, fontwdSml)
+                rebuild = tmpitem['info']['resync']
+                statusList = tmpitem['info']['state'].split(", ")
+                if len(statusList) == 1:
+                    status = statusList[0]
+                if len(statusList) == 2:
+                    status = statusList[1]
+                if len(statusList) >=3:
+                    status = statusList[2]
+                oled_writetext( status, stdleftoffset, 8, fontwdSml )
+                if len(rebuild) > 0:
+                    percent = rebuild.split( " " )
+                    oled_writetext("Rebuild: " + percent[0], stdleftoffset, 16, fontwdSml)
                 oled_writetext("Active:"+str(int(tmpitem["info"]["active"]))+"/"+str(int(tmpitem["info"]["devices"])), stdleftoffset, 32, fontwdSml)
                 oled_writetext("Working:"+str(int(tmpitem["info"]["working"]))+"/"+str(int(tmpitem["info"]["devices"])), stdleftoffset, 40, fontwdSml)
                 oled_writetext("Failed:"+str(int(tmpitem["info"]["failed"]))+"/"+str(int(tmpitem["info"]["devices"])), stdleftoffset, 48, fontwdSml)

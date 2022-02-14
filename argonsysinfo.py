@@ -176,7 +176,7 @@ def argonsysinfo_listhddusage():
     raidctr = 0
     while raidctr < len(raidlist['raidlist']):
         raiddevlist.append(raidlist['raidlist'][raidctr]['title'])
-        outputobj[raidlist['raidlist'][raidctr]['title']] = {"used":int(raidlist['raidlist'][raidctr]['info']['used']), "total":int(raidlist['raidlist'][raidctr]['info']['size'])}
+        #outputobj[raidlist['raidlist'][raidctr]['title']] = {"used":int(raidlist['raidlist'][raidctr]['info']['used']), "total":int(raidlist['raidlist'][raidctr]['info']['size'])}
         raidctr = raidctr + 1
 
     rootdev = argonsysinfo_getrootdev()
@@ -207,7 +207,7 @@ def argonsysinfo_listhddusage():
             if curdev in raidlist['hddlist']:
                 continue
             elif curdev in raiddevlist:
-                continue
+                curdev = curdev
             elif curdev[0:2] == "sd" or curdev[0:2] == "hd":
                 curdev = curdev[0:-1]
             else:
@@ -293,6 +293,7 @@ def argonsysinfo_getraiddetail(devname):
     active = 0
     failed = 0
     spare = 0
+    resync = ""
     tmp = os.popen('mdadm -D /dev/'+devname).read()
     alllines = tmp.split("\n")
 
@@ -325,4 +326,6 @@ def argonsysinfo_getraiddetail(devname):
                 failed = infolist[1]
             elif infolist[0].lower() == "spare devices":
                 spare = infolist[1]
-    return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare)}
+            elif infolist[0].lower() == "rebuild status":
+                resync = infolist[1]
+    return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync}
