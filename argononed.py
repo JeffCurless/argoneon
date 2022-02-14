@@ -387,10 +387,17 @@ def display_loop(readq):
         elif curscreen == "ip":
             # IP Address
             try:
-                oled_loadbg("bgip")
-                oled_writetextaligned(argonsysinfo_getip(), 0, 8, oledscreenwidth, 1, fontwdReg)
-                needsUpdate = True
+                if len(curlist) == 0:
+                    curlist = argonsysinfo_getipList()
             except:
+                curlist = []
+
+            if len(curlist) > 0:
+                item = curlist.pop(0)
+                oled_loadbg("bgip")
+                oled_writetextaligned(item[1], 0, 8, oledscreenwidth, 1, fontwdReg)
+                needsUpdate = True
+            else:
                 needsUpdate = False
                 # Next page due to error/no data
                 screenjogflag = 1
