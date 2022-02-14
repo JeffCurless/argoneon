@@ -3,7 +3,6 @@ This repository contains modificatoions to the code distributed by Argon40 (www.
 
 ## Install
 
-...
-
+```
 curl -L https://raw.githubusercontent.com/JeffCurless/argoneon/main/argoneon.sh | bash
-...
+```
