@@ -327,6 +327,7 @@ def display_loop(readq):
                     status = statusList[1]
                 if len(statusList) >=3:
                     status = statusList[2]
+                status = status.capitalize()
                 oled_writetext( status, stdleftoffset, 8, fontwdSml )
                 if len(rebuild) > 0:
                     percent = rebuild.split( " " )

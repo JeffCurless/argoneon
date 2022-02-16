@@ -7,24 +7,24 @@ read -n 1 confirm
 echo
 if [ "$confirm" = "y" ]
 then
-	confirm="Y"
+    confirm="Y"
 fi
 
 if [ "$confirm" != "Y" ]
 then
-	echo "Cancelled"
-	exit
+    echo "Cancelled"
+    exit
 fi
 
 shortcutfile="/home/pi/Desktop/argonone-config.desktop"
 if [ -f "$shortcutfile" ]; then
-	sudo rm $shortcutfile
-	if [ -f "/usr/share/pixmaps/ar1config.png" ]; then
-		sudo rm /usr/share/pixmaps/ar1config.png
-	fi
-	if [ -f "/usr/share/pixmaps/argoneon.png" ]; then
-		sudo rm /usr/share/pixmaps/argoneon.png
-	fi
+    sudo rm $shortcutfile
+    if [ -f "/usr/share/pixmaps/ar1config.png" ]; then
+        sudo rm /usr/share/pixmaps/ar1config.png
+    fi
+    if [ -f "/usr/share/pixmaps/argoneon.png" ]; then
+        sudo rm /usr/share/pixmaps/argoneon.png
+    fi
 fi
 
 
@@ -33,44 +33,44 @@ INSTALLATIONFOLDER=/etc/argon
 argononefanscript=$INSTALLATIONFOLDER/argononed.py
 
 if [ -f $argononefanscript ]; then
-	sudo systemctl stop argononed.service
-	sudo systemctl disable argononed.service
+    sudo systemctl stop argononed.service
+    sudo systemctl disable argononed.service
 
-	# Turn off the fan
-	sudo /usr/bin/python3 $argononefanscript FANOFF
+    # Turn off the fan
+    sudo /usr/bin/python3 $argononefanscript FANOFF
 
-	# Remove files
-	sudo rm /lib/systemd/system/argononed.service
+    # Remove files
+    sudo rm /lib/systemd/system/argononed.service
 fi
 
 # Remove RTC if any
 argoneonrtcscript=$INSTALLATIONFOLDER/argoneond.py
 if [ -f "$argoneonrtcscript" ]
 then
-	# Disable Services
-	sudo systemctl stop argoneond.service
-	sudo systemctl disable argoneond.service
+    # Disable Services
+    sudo systemctl stop argoneond.service
+    sudo systemctl disable argoneond.service
 
-	# No need for sudo
-	sudo /usr/bin/python3 $argoneonrtcscript CLEAN
-	sudo /usr/bin/python3 $argoneonrtcscript SHUTDOWN
+    # Make sure real time clock is down
+    sudo /usr/bin/python3 $argoneonrtcscript CLEAN
+    sudo /usr/bin/python3 $argoneonrtcscript SHUTDOWN
 
-	# Remove files
-	sudo rm /lib/systemd/system/argoneond.service
+    # Remove files
+    sudo rm /lib/systemd/system/argoneond.service
 fi
 
 sudo rm /usr/bin/argon-config
 
 if [ -f "/usr/bin/argonone-config" ]
 then
-		sudo rm /usr/bin/argonone-config
-		sudo rm /usr/bin/argonone-uninstall
-		sudo rm /usr/bin/argonone-ir
+    sudo rm /usr/bin/argonone-config
+    sudo rm /usr/bin/argonone-uninstall
+    sudo rm /usr/bin/argonone-ir
 fi
 
 if [ -f "/usr/bin/argon-status" ]
 then
-		sudo rm /usr/bin/argon-status
+    sudo rm /usr/bin/argon-status
 fi
 
 sudo rm /lib/systemd/system-shutdown/argon-shutdown.sh

@@ -4,7 +4,7 @@ import sys
 import os
 import time
 import math
-sys.path.append( "/etc/argon/")
+#sys.path.append( "/etc/argon/")
 from argonsysinfo import *
 
 #
@@ -50,6 +50,7 @@ while len(raidlist) > 0:
         state = stateArray[1]
     if len(stateArray) >= 3:
         state = stateArray[2]
+    state = state.capitalize()
     print( "    Device: " + item['title'] + " Type: " + item['info']['raidtype'].upper() + " State: " + state + " Size: " +argonsysinfo_kbstr(item['info']['size'] ) + rebuild )
 
 #print( "Drives used in RAID:" )
