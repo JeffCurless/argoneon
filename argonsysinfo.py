@@ -342,3 +342,4 @@ def argonsysinfo_getraiddetail(devname):
             elif infolist[0].lower() == "rebuild status":
                 resync = infolist[1]
     return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync}
+
