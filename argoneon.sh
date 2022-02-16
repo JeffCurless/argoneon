@@ -10,7 +10,8 @@ INSTALLATIONFOLDER=/etc/argon
 
 uninstallscript=$INSTALLATIONFOLDER/argon-uninstall.sh
 shutdownscript=/lib/systemd/system-shutdown/argon-shutdown.sh
-statusscript=$INSTALLATIONFOLDER/argon-status.sh
+statusscript=$INSTALLATIONFOLDER/argon-status.py
+statuscmd=argon-status
 configscript=$INSTALLATIONFOLDER/argon-config
 
 setupmode="Setup"
@@ -198,9 +199,13 @@ sudo curl -L $ARGONDOWNLOADSERVER/argon-shutdown.sh -o $shutdownscript --silent
 sudo chmod 755 $shutdownscript
 
 # Argon Status script
-sudo curl -L $ARGONDOWNLOADSERVER/argon-status.sh -o $statusscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argon-status.py -o $statusscript --silent
 sudo chmod 755 $statusscript
-sudo ln -s $statusscript /usr/bin/argon-status
+if [ -f /usr/bin/$statuscmd ]
+then
+    sudo rm /usr/bin/$statuscmd
+fi
+sudo ln -s $statusscript /usr/bin/$statuscmd
 
 # Argon Config Script
 if [ -f $configscript ]; then
