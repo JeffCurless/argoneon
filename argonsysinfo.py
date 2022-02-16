@@ -225,10 +225,11 @@ def argonsysinfo_listhddusage():
                   curdev = curdev[0:-1]
               else:
                   curdev = curdev[0:-2]
+            percent=infolist[4].split("%")[0]
             if curdev in outputobj:
-                outputobj[curdev] = {"used":outputobj[curdev]['used']+int(infolist[2]), "total":outputobj[curdev]['total']+int(infolist[1])}
+                outputobj[curdev] = {"used":outputobj[curdev]['used']+int(infolist[2]), "total":outputobj[curdev]['total']+int(infolist[1]), "percent":outputobj[curdev]['percent']+int(percent)}
             else:
-                outputobj[curdev] = {"used":int(infolist[2]), "total":int(infolist[1])}
+                outputobj[curdev] = {"used":int(infolist[2]), "total":int(infolist[1]), "percent":int(percent)}
 
     return outputobj
 
@@ -307,7 +308,8 @@ def argonsysinfo_getraiddetail(devname):
     failed = 0
     spare = 0
     resync = ""
-    tmp = os.popen('mdadm -D /dev/'+devname).read()
+    hddlist =[]
+    tmp = os.popen('sudo mdadm -D /dev/'+devname).read()
     alllines = tmp.split("\n")
 
     for temp in alllines:
@@ -341,5 +343,11 @@ def argonsysinfo_getraiddetail(devname):
                 spare = infolist[1]
             elif infolist[0].lower() == "rebuild status":
                 resync = infolist[1]
-    return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync}
+            elif infolist[0].lower() == "resync status":
+                resync = infolist[1]
+        elif len(infolist) > 0:
+            infolist = temp.split(" ")
+            if len(infolist) == 7:
+                hddlist.append(infolist[6])
+    return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync, "hddlist":hddlist}
 

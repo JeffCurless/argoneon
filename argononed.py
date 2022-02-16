@@ -279,7 +279,7 @@ def display_loop(readq):
                 try:
                     tmpobj = argonsysinfo_listhddusage()
                     for curdev in tmpobj:
-                        curlist.append({"title": curdev, "value": argonsysinfo_kbstr(tmpobj[curdev]['total']), "usage": int(100*tmpobj[curdev]['used']/tmpobj[curdev]['total']) })
+                        curlist.append({"title": curdev, "value": argonsysinfo_kbstr(tmpobj[curdev]['total']), "usage": int(tmpobj[curdev]['percent']) })
                     #curlist = argonsysinfo_liststoragetotal()
                 except:
                     curlist = []
