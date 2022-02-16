@@ -200,6 +200,7 @@ sudo chmod 755 $shutdownscript
 # Argon Status script
 sudo curl -L $ARGONDOWNLOADSERVER/argon-status.sh -o $statusscript --silent
 sudo chmod 755 $statusscript
+sudo ln -s $statusscript /usr/bin/argon-status
 
 # Argon Config Script
 if [ -f $configscript ]; then

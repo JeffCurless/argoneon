@@ -4,7 +4,7 @@ import sys
 import os
 import time
 import math
-#sys.path.append( "/etc/argon/")
+sys.path.append( "/etc/argon/")
 from argonsysinfo import *
 
 #
