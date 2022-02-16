@@ -10,7 +10,7 @@ INSTALLATIONFOLDER=/etc/argon
 
 uninstallscript=$INSTALLATIONFOLDER/argon-uninstall.sh
 shutdownscript=/lib/systemd/system-shutdown/argon-shutdown.sh
-statusscript=/$INSTALLATIONFOLDER/argon-status.sh
+statusscript=$INSTALLATIONFOLDER/argon-status.sh
 configscript=$INSTALLATIONFOLDER/argon-config
 
 setupmode="Setup"
