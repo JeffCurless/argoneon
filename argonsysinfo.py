@@ -351,3 +351,28 @@ def argonsysinfo_getraiddetail(devname):
                 hddlist.append(infolist[6])
     return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync, "hddlist":hddlist}
 
+def argonsysinfo_diskusagedetail( disk ):
+    readsector = 0
+    writesector = 0
+    discardsector = 0
+
+    tmp = os.popen( "cat /sys/block/" + disk + "/stat" ).read()
+    tmp.replace('\t',' ')
+    tmp = tmp.strip()
+    while tmp.find("  ") >= 0:
+        tmp = tmp.replace("  ", " ")
+    data = tmp.split(" ")
+    if len(data) >= 11:
+        readsector = data[2]
+        writesector = data[6]
+
+    return {"disk":disk, "readsector":int(readsector), "writesector":int(writesector)}
+
+def argonsysinfo_diskusage():
+    usage = []
+    hddlist = argonsysinfo_listhddusage()
+    for disk in hddlist:
+        temp = argonsysinfo_diskusagedetail( disk )
+        usage.append( temp )
+
+    return usage

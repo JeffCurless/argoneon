@@ -36,6 +36,9 @@ get_pagename() {
 	elif [ "$1" == "storage" ]
 	then
 		pagename="Storage Utilization"
+	elif [ "$1" == "bandwidth" ]
+	then
+		pagename="Drive Bandwidh utilization"
 	elif [ "$1" == "raid" ]
 	then
 		pagename="RAID Information"
@@ -54,7 +57,7 @@ get_pagename() {
 }
 
 configure_pagelist () {
-	pagemasterlist="clock cpu storage raid ram temp ip"
+	pagemasterlist="clock cpu storage bandwidth raid ram temp ip"
 	newscreenlist="$1"
 	pageloopflag=1
 	while [ $pageloopflag -eq 1 ]
@@ -85,7 +88,6 @@ configure_pagelist () {
 			pageloopflag=0
 		elif [[ $cmdmode -eq $i ]]
 		then
-
 			echo "--------------------------------"
 			echo " Choose Page to Add"
 			echo "--------------------------------"
