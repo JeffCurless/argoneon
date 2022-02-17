@@ -225,6 +225,13 @@ def display_loop(readq):
         if tmpconfig["enabled"] == "N":
             screenenabled = []
 
+    #
+    # Setup some variables to help calculate bandwidth
+    #
+    timespan = 1
+    prevData = argonsysinfo_diskusage()
+    prevTime = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+    
     while len(screenenabled) > 0:
         if len(curlist) == 0 and screenjogflag == 1:
             # Reset Screen Saver
@@ -304,6 +311,48 @@ def display_loop(readq):
             else:
                 # Next page due to error/no data
                 screenjogflag = 1
+
+        elif curscreen == "bandwidth":
+            # Bandwidth info
+            if len(curlist) == 0:
+                try:
+                    diskdata = argonsysinfo_diskusage()
+                    for istop in diskdata:
+                        for istart in prevData:
+                            if istop['disk'] == istart['disk']:
+                                istart['readsector']  = istop['readsector'] - istart['readsector']
+                                istart['writesector'] = istop['writesector'] - istart['writesector']
+                    curlist   = prevData
+                    prevData  = diskdata
+                    stoptime  = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+                    timespan = (stoptime - prevTime)/1000000000
+                    prevTime  = stoptime
+                except:
+                    curlist = []
+            if len(curlist) > 0:
+
+                oled_clearbuffer()
+                oled_writetextaligned( "BANDWIDTH", 0, 0, oledscreenwidth, 1, fontwdSml)
+                oled_writetextaligned( "Write", 77, 16, oledscreenwidth-77, 2, fontwdSml)
+                oled_writetextaligned( "Read",  50, 16, 74-50,              2, fontwdSml)
+                oled_writetext( "Device", 0, 16, fontwdSml )
+
+                itemcount = 2
+                yoffset   = 32
+                while itemcount > 0 and len(curlist) >0:
+                    item = curlist.pop(0)
+                    bandwidth = int((item['writesector']/2)/timespan)
+                    oled_writetextaligned( argonsysinfo_kbstr(bandwidth), 77, yoffset, oledscreenwidth-77, 2, fontwdSml )
+                    bandwidth = int((item['readsector']/2)/timespan)
+                    oled_writetextaligned( argonsysinfo_kbstr(bandwidth), 50, yoffset, 74-50, 2, fontwdSml )
+                    oled_writetext( item['disk'], 0, yoffset, fontwdSml )
+                    itemcount = itemcount - 1
+                    yoffset   = yoffset + 16
+
+                needsUpdate = True
+            else:
+                # Next Page due to error/no data
+                screenjogFlag = 1
 
         elif curscreen == "raid":
             # Raid Info

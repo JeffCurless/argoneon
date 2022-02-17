@@ -4,9 +4,11 @@ import sys
 import os
 import time
 import math
-#sys.path.append( "/etc/argon/")
+sys.path.append( "/etc/argon/")
 from argonsysinfo import *
 
+usage1 = argonsysinfo_diskusage()
+start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
 #
 # Display CPU utilization
 # 
@@ -85,4 +87,23 @@ tmp = argonsysinfo_getipList()
 print( "IP Address : " )
 for item in tmp:
     print( "    " + item[0] + ": " + item[1] )
+
+#
+# Disk utilization
+# 
+usage2 = argonsysinfo_diskusage()
+stop = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+
+for istop in usage2:
+    for istart in usage1:
+        if istop['disk'] == istart['disk']:
+            istop['readsector'] = istop['readsector'] - istart['readsector']
+            istop['writesector'] = istop['writesector'] - istart['writesector']
+
+span = ((stop - start)/1000000000)
+for item in usage2:
+    readbw = (item['readsector']/2)/span
+    writebw = (item['writesector']/2)/span
+    print( item['disk'] + " read: " + argonsysinfo_kbstr(int(readbw)) + "/Sec write: " + argonsysinfo_kbstr(int(writebw)) + "/Sec" )
+
 
