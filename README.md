@@ -8,11 +8,13 @@ curl -L https://raw.githubusercontent.com/JeffCurless/argoneon/main/argoneon.sh 
 ```
 ## Uninstall
 
-Just like the original simple execute:
+Just like the original simply execute:
 
 ```
 sudo /etc/argon/argon-uninstall
 ```
+
+or run argon-config, and select the uninstall option.
 
 ## Put back the Original
 
