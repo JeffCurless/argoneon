@@ -155,7 +155,7 @@ def argonsysinfo_getip():
 
 def get_ip_addresses( family ):
     for interface, snics in psutil.net_if_addrs().items():
-        if interface != "lo":
+        if interface != "lo" and not interface.startswith("br"):
             for snic in snics:
                 if snic.family == family:
                     yield( interface, snic.address )
