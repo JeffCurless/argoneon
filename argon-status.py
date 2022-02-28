@@ -10,7 +10,7 @@ from argonsysinfo import *
 usage1 = argonsysinfo_diskusage()
 start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
 #
-# Display CPU utilization
+# Display CPU Utilization
 # 
 print( "CPU Utilization:" )
 cpulist = argonsysinfo_listcpuusage()
@@ -89,7 +89,7 @@ for item in tmp:
     print( "    " + item[0] + ": " + item[1] )
 
 #
-# Disk utilization
+# Disk Utilization
 # 
 usage2 = argonsysinfo_diskusage()
 stop = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
