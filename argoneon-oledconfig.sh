@@ -38,7 +38,7 @@ get_pagename() {
 		pagename="Storage Utilization"
 	elif [ "$1" == "bandwidth" ]
 	then
-		pagename="Drive Bandwidh utilization"
+		pagename="Drive Bandwidth utilization"
 	elif [ "$1" == "raid" ]
 	then
 		pagename="RAID Information"
