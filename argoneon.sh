@@ -43,7 +43,7 @@ grep -q -F 'Raspbian' /etc/os-release &> /dev/null
 if [ $? -eq 0 ]
 then
 	CHECKPLATFORM="Raspbian"
-	pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools)	
+	pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil)
 else
 	# Ubuntu has serial and i2c enabled
 	pkglist=(python3-rpi.gpio python3-smbus i2c-tools)
