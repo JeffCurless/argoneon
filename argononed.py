@@ -449,8 +449,8 @@ def display_loop(readq):
             if len(curlist) > 0:
                 item = curlist.pop(0)
                 oled_loadbg("bgip")
-                oled_writetextaligned(item[0], 0, 8, oledscreenwidth, 1, fontwdReg)
-                oled_writetextaligned(item[1], 0, 24, oledscreenwidth, 1, fontwdReg)
+                oled_writetextaligned(item[0], 0, 0, oledscreenwidth, 1, fontwdReg)
+                oled_writetextaligned(item[1], 0,16, oledscreenwidth, 1, fontwdReg)
                 needsUpdate = True
             else:
                 needsUpdate = False
