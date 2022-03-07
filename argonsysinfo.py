@@ -345,6 +345,8 @@ def argonsysinfo_getraiddetail(devname):
                 resync = infolist[1]
             elif infolist[0].lower() == "resync status":
                 resync = infolist[1]
+            elif infolist[0].lower() == "check status":
+                resync = infolist[1]
         elif len(infolist) > 0:
             infolist = temp.split(" ")
             if len(infolist) == 7:

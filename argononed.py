@@ -191,8 +191,8 @@ def temp_check():
 # This function is the thread that updates OLED
 #
 def display_loop(readq):
-    weekdaynamelist = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] 
-    monthlist = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"] 
+    weekdaynamelist = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    monthlist = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
     oledscreenwidth = oled_getmaxX()
 
     fontwdSml = 6    # Maps to 6x8
@@ -231,7 +231,7 @@ def display_loop(readq):
     timespan = 1
     prevData = argonsysinfo_diskusage()
     prevTime = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
-    
+
     while len(screenenabled) > 0:
         if len(curlist) == 0 and screenjogflag == 1:
             # Reset Screen Saver
@@ -292,7 +292,7 @@ def display_loop(readq):
                     curlist = []
             if len(curlist) > 0:
                 oled_loadbg("bgstorage")
-                
+
                 yoffset = 16
                 tmpmax = 3
                 while tmpmax > 0 and len(curlist) > 0:
@@ -304,7 +304,7 @@ def display_loop(readq):
                     if len(tmpname) > 8:
                         tmpname = tmpname[0:8]
                     oled_writetext(tmpname, 0, yoffset, fontwdSml)
-                    
+
                     tmpmax = tmpmax - 1
                     yoffset = yoffset + 16
                 needsUpdate = True
@@ -380,7 +380,11 @@ def display_loop(readq):
                 oled_writetext( status, stdleftoffset, 8, fontwdSml )
                 if len(rebuild) > 0:
                     percent = rebuild.split( " " )
-                    oled_writetext("Rebuild: " + percent[0], stdleftoffset, 16, fontwdSml)
+                    if status.lower() == "checking":
+                        label = "Progess: "
+                    else:
+                        label = "Rebuild: "
+                    oled_writetext(label + percent[0], stdleftoffset, 16, fontwdSml)
                 oled_writetext("Active:"+str(int(tmpitem["info"]["active"]))+"/"+str(int(tmpitem["info"]["devices"])), stdleftoffset, 32, fontwdSml)
                 oled_writetext("Working:"+str(int(tmpitem["info"]["working"]))+"/"+str(int(tmpitem["info"]["devices"])), stdleftoffset, 40, fontwdSml)
                 oled_writetext("Failed:"+str(int(tmpitem["info"]["failed"]))+"/"+str(int(tmpitem["info"]["devices"])), stdleftoffset, 48, fontwdSml)
@@ -445,8 +449,8 @@ def display_loop(readq):
             if len(curlist) > 0:
                 item = curlist.pop(0)
                 oled_loadbg("bgip")
-                oled_writetextaligned(item[0], 0, 0, oledscreenwidth, 1, fontwdReg)
-                oled_writetextaligned(item[1], 0,16, oledscreenwidth, 1, fontwdReg)
+                oled_writetextaligned(item[0], 0, 8, oledscreenwidth, 1, fontwdReg)
+                oled_writetextaligned(item[1], 0, 24, oledscreenwidth, 1, fontwdReg)
                 needsUpdate = True
             else:
                 needsUpdate = False
@@ -467,7 +471,7 @@ def display_loop(readq):
 
                 # Day of Week
                 oled_writetextaligned(weekdaynamelist[curtime.weekday()], stdleftoffset, 24, oledscreenwidth-stdleftoffset, 1, fontwdReg)
-                
+
                 # Time
                 outstr = str(curtime.minute).strip()
                 if len(outstr) < 2:
@@ -543,7 +547,6 @@ if len(sys.argv) > 1:
         # Signal poweroff
         bus.write_byte(ADDR_FAN,0xFF)
 
-        
     elif cmd == "FANOFF":
         # Turn off fan
         bus.write_byte(ADDR_FAN,0)
