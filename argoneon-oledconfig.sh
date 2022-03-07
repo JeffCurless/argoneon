@@ -18,7 +18,7 @@ get_number () {
 		then
 			echo "-1"
 			return
-		fi	
+		fi
 		echo $curnumber
 		return
 	fi
