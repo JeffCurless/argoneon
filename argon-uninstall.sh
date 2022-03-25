@@ -37,7 +37,7 @@ if [ -f $argononefanscript ]; then
     sudo systemctl disable argononed.service
 
     # Turn off the fan
-    sudo /usr/bin/python3 $argononefanscript FANOFF
+    /usr/bin/python3 $argononefanscript FANOFF
 
     # Remove files
     sudo rm /lib/systemd/system/argononed.service
@@ -51,9 +51,9 @@ then
     sudo systemctl stop argoneond.service
     sudo systemctl disable argoneond.service
 
-    # Make sure real time clock is down
-    sudo /usr/bin/python3 $argoneonrtcscript CLEAN
-    sudo /usr/bin/python3 $argoneonrtcscript SHUTDOWN
+    # No need for sudo
+    /usr/bin/python3 $argoneonrtcscript CLEAN
+    /usr/bin/python3 $argoneonrtcscript SHUTDOWN
 
     # Remove files
     sudo rm /lib/systemd/system/argoneond.service

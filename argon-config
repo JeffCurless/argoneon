@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "--------------------------"
-echo " Argon Configuration Tool "
+echo "Argon Configuration Tool"
+/etc/argon/argon-versioninfo.sh simple
 echo "--------------------------"
 get_number () {
 	read curnumber
@@ -35,10 +36,11 @@ do
 	echo "  2. Configure IR"
 	echo "  3. Configure RTC and/or Schedule"
 	echo "  4. Configure OLED"
-	echo "  5. Uninstall"
+	echo "  5. Configure Units"
+	echo "  6. Uninstall"
 	echo ""
 	echo "  0. Exit"
-	echo -n "Enter Number (0-5):"
+	echo -n "Enter Number (0-6):"
 	newmode=$( get_number )
 	if [ $newmode -eq 0 ]
 	then
@@ -46,8 +48,22 @@ do
 		mainloopflag=0
 	elif [ $newmode -eq 1 ]
 	then
-		/etc/argon/argonone-fanconfig.sh
-		mainloopflag=0
+		echo "Choose Triggers:"
+		echo "  1. CPU Temperature"
+		echo "  2. HDD Temperature"
+		echo ""
+		echo "  0. Cancel"
+		echo -n "Enter Number (0-2):"
+		submode=$( get_number )
+		if [ $submode -eq 1 ]
+		then
+			/etc/argon/argonone-fanconfig.sh
+			mainloopflag=0
+		elif [ $submode -eq 2 ]
+		then
+			/etc/argon/argonone-fanconfig.sh hdd
+			mainloopflag=0
+		fi
 	elif [ $newmode -eq 2 ]
 	then
 		/etc/argon/argonone-ir
@@ -61,6 +77,10 @@ do
 		/etc/argon/argoneon-oledconfig.sh
 		mainloopflag=0
 	elif [ $newmode -eq 5 ]
+	then
+		/etc/argon/argon-unitconfig.sh
+		mainloopflag=0
+	elif [ $newmode -eq 6 ]
 	then
 		/etc/argon/argon-uninstall.sh
 		mainloopflag=0

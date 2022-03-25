@@ -49,6 +49,7 @@ if os.path.exists("/etc/argon/argoneonoled.py"):
     OLED_ENABLED=True
 
 OLED_CONFIGFILE = "/etc/argoneonoled.conf"
+UNIT_CONFIGFILE = "/etc/argonunits.conf"
 
 ADDR_FAN=0x1a
 PIN_SHUTDOWN=4
@@ -89,6 +90,8 @@ def get_fanspeed(tempval, configlist):
         tempcfg = float(curpair[0])
         fancfg = int(float(curpair[1]))
         if tempval >= tempcfg:
+            if fancfg < 25:
+                return 25
             return fancfg
     return 0
 
@@ -162,6 +165,28 @@ def load_oledconfig(fname):
         return {}
     return output
 
+# Load Unit Config file
+def load_unitconfig(fname):
+    output={"temperature": "C"}
+    try:
+        with open(fname, "r") as fp:
+            for curline in fp:
+                if not curline:
+                    continue
+                tmpline = curline.strip()
+                if not tmpline:
+                    continue
+                if tmpline[0] == "#":
+                    continue
+                tmppair = tmpline.split("=")
+                if len(tmppair) != 2:
+                    continue
+                if tmppair[0] == "temperature":
+                    output['temperature']=tmppair[1].replace("\"", "")
+    except:
+        return {}
+    return output
+
 # This function is the thread that monitors temperature and sets the fan speed
 # The value is fed to get_fanspeed to get the new fan speed
 # To prevent unnecessary fluctuations, lowering fan speed is delayed by 30 seconds
@@ -169,19 +194,38 @@ def load_oledconfig(fname):
 # Location of config file varies based on OS
 #
 def temp_check():
-    fanconfig = ["65=100", "60=55", "55=10"]
+    fanconfig = ["65=100", "60=55", "55=30"]
+    fanhddconfig = ["50=100", "40=55", "30=30"]
+
     tmpconfig = load_config("/etc/argononed.conf")
     if len(tmpconfig) > 0:
         fanconfig = tmpconfig
+    tmpconfig = load_config("/etc/argononed-hdd.conf")
+    if len(tmpconfig) > 0:
+        fanhddconfig = tmpconfig
+
     prevspeed=0
     while True:
-        val = argonsysinfo_gettemp()
+        # Speed based on CPU Temp
+        val = argonsysinfo_getcputemp()
         newspeed = get_fanspeed(val, fanconfig)
+        # Speed based on HDD Temp
+        val = argonsysinfo_getmaxhddtemp()
+        tmpspeed = get_fanspeed(val, fanhddconfig)
+
+        # Use faster fan speed
+        if tmpspeed > newspeed:
+            newspeed = tmpspeed
+
         if newspeed < prevspeed:
-            # Pause 30s if reduce to prevent fluctuations
+            # Pause 30s before speed reduction to prevent fluctuations
             time.sleep(30)
         prevspeed = newspeed
         try:
+            if newspeed > 0:
+                # Spin up to prevent issues on older units
+                bus.write_byte(ADDR_FAN,100)
+                time.sleep(1)
             bus.write_byte(ADDR_FAN,newspeed)
             time.sleep(30)
         except IOError:
@@ -198,6 +242,11 @@ def display_loop(readq):
     fontwdSml = 6    # Maps to 6x8
     fontwdReg = 8    # Maps to 8x16
     stdleftoffset = 54
+
+    temperature="C"
+    tmpconfig=load_unitconfig(UNIT_CONFIGFILE)
+    if "temperature" in tmpconfig:
+        temperature = tmpconfig["temperature"]
 
     screensavermode = False
     screensaversec = 120
@@ -409,28 +458,71 @@ def display_loop(readq):
         elif curscreen == "temp":
             # Temp
             try:
-                maxht = 21
                 oled_loadbg("bgtemp")
-                cval = argonsysinfo_gettemp()
-                fval = 32+9*cval/5
+                hddtempctr = 0
+                maxcval = 0
+                mincval = 200
 
-                # 40C is min, 80C is max
-                barht = int(maxht*(cval-40)/40)
+
+                # Get min/max of hdd temp
+                hddtempobj = argonsysinfo_gethddtemp()
+                for curdev in hddtempobj:
+                    if hddtempobj[curdev] < mincval:
+                        mincval = hddtempobj[curdev]
+                    if hddtempobj[curdev] > maxcval:
+                        maxcval = hddtempobj[curdev]
+                    hddtempctr = hddtempctr + 1
+
+                cpucval = argonsysinfo_getcputemp()
+                if hddtempctr > 0:
+                    alltempobj = {"cpu": cpucval,"hdd min": mincval, "hdd max": maxcval}
+                    # Update max C val to CPU Temp if necessary
+                    if maxcval < cpucval:
+                        maxcval = cpucval
+
+                    displayrowht = 8
+                    displayrow = 8
+                    for curdev in alltempobj:
+                        if temperature == "C":
+                            # Celsius
+                            tmpstr = str(alltempobj[curdev])
+                            if len(tmpstr) > 4:
+                                tmpstr = tmpstr[0:4]
+                        else:
+                            # Fahrenheit
+                            tmpstr = str(32+9*(alltempobj[curdev])/5)
+                            if len(tmpstr) > 5:
+                                tmpstr = tmpstr[0:5]
+                        if len(curdev) <= 3:
+                            oled_writetext(curdev.upper()+": "+ tmpstr+ chr(167) +temperature, stdleftoffset, displayrow, fontwdSml)
+
+                        else:
+                            oled_writetext(curdev.upper()+":", stdleftoffset, displayrow, fontwdSml)
+
+                            oled_writetext("     "+ tmpstr+ chr(167) +temperature, stdleftoffset, displayrow+displayrowht, fontwdSml)
+                        displayrow = displayrow + displayrowht*2
+                else:
+                    maxcval = cpucval
+                    if temperature == "C":
+                        # Celsius
+                        tmpstr = str(cpucval)
+                        if len(tmpstr) > 4:
+                            tmpstr = tmpstr[0:4]
+                    else:
+                        # Fahrenheit
+                        tmpstr = str(32+9*(cpucval)/5)
+                        if len(tmpstr) > 5:
+                            tmpstr = tmpstr[0:5]
+
+                    oled_writetextaligned(tmpstr+ chr(167) +temperature, stdleftoffset, 24, oledscreenwidth-stdleftoffset, 1, fontwdReg)
+
+                # Temperature Bar: 40C is min, 80C is max
+                maxht = 21
+                barht = int(maxht*(maxcval-40)/40)
                 if barht > maxht:
                     barht = maxht
                 elif barht < 1:
                     barht = 1
-
-                tmpcstr = str(cval)
-                if len(tmpcstr) > 4:
-                    tmpcstr = tmpcstr[0:4]
-                tmpfstr = str(fval)
-                if len(tmpfstr) > 5:
-                    tmpfstr = tmpfstr[0:5]
-
-                oled_writetextaligned(tmpcstr+ chr(167) +"C", stdleftoffset, 16, oledscreenwidth-stdleftoffset, 1, fontwdReg)
-                oled_writetextaligned(tmpfstr+ chr(167) +"F", stdleftoffset, 32, oledscreenwidth-stdleftoffset, 1, fontwdReg)
-
                 oled_drawfilledrectangle(24, 20+(maxht-barht), 3, barht, 2)
 
                 needsUpdate = True
