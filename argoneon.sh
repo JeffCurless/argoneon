@@ -97,7 +97,7 @@ daemonfanservice=/lib/systemd/system/$daemonname.service
 daemonhddconfigfile=/etc/${daemonname}-hdd.conf
 
 # Fan Config Script
-sudo curl -L $ARGONDOWNLOADSERVER/argonone-fanconfig.sh -O $fanconfigscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argonone-fanconfig.sh -o $fanconfigscript --silent
 sudo chmod 755 $fanconfigscript
 
 
@@ -111,14 +111,14 @@ sudo curl -L $ARGONDOWNLOADSERVER/argonone-irconfig.sh -o $irconfigscript --sile
 sudo chmod 755 $irconfigscript
 
 # Other utility scripts
-sudo curl -L $ARGONDOWNLOADSERVER/argon-versioninfo.sh -o argon-versioninfoscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argon-versioninfo.sh -o $versioninfoscript --silent
 sudo chmod 755 $versioninfoscript
 
 sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py --silent
 
 sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript --silent
 
-sudo curl -L wget $ARGONDOWNLOADSERVER/argon-unitconfig.sh -o $unitconfigscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argon-unitconfig.sh -o $unitconfigscript --silent
 sudo chmod 755 $unitconfigscript
 
 # Generate default Fan config file if non-existent
