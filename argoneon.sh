@@ -372,8 +372,9 @@ echo 'done' >> $configscript
 sudo chmod 755 $configscript
 
 # Desktop Icon
-shortcutfile="/home/pi/Desktop/argonone-config.desktop"
-if [ "$CHECKPLATFORM" = "Raspbian" ] && [ -d "/home/pi/Desktop" ]
+currentuser=`whoami`
+shortcutfile="/home/${currentuser}/Desktop/argonone-config.desktop"
+if [ "$CHECKPLATFORM" = "Raspbian" ] && [ -d "/home/${currentuser}/Desktop" ]
 then
     terminalcmd="lxterminal --working-directory=/home/pi/ -t"
     if  [ -f "/home/pi/.twisteros.twid" ]
