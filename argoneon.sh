@@ -191,7 +191,7 @@ then
         echo '# Argon OLED Configuration' >> $oledconfigfile
         echo '#' >> $oledconfigfile
         echo 'switchduration=30' >> $oledconfigfile
-        echo 'screenlist="clock cpu storage raid ram temp ip"' >> $oledconfigfile
+        echo 'screenlist="clock cpu storage bandwidth raid ram temp ip"' >> $oledconfigfile
     fi
 
 
@@ -385,7 +385,7 @@ then
     then
         imagefile=argoneon.png
     fi
-    sudo wget http://download.argon40.com/$imagefile -O /usr/share/pixmaps/$imagefile --quiet
+    sudo curl -L $ARGONDOWNLOADSERVER/$imagefile -o /usr/share/pixmaps/$imagefile --silent
     if [ -f $shortcutfile ]; then
         sudo rm $shortcutfile
     fi

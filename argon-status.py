@@ -68,7 +68,7 @@ print( "    Free : " + tmp[0] )
 #
 # Display temp
 #
-tmp = argonsysinfo_gettemp()
+tmp = argonsysinfo_getcputemp()
 ctemp = str(tmp)
 ftemp = str(32 + (9*tmp)/5)
 if len(ctemp ) > 4:
