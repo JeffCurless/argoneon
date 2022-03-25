@@ -129,7 +129,18 @@ def argonsysinfo_getram():
     return [str(int(100*totalfree/totalram))+"%", str((totalram+512*1024)>>20)+"GB"]
 
 
-def argonsysinfo_gettemp():
+def argonsysinfo_getmaxhddtemp():
+    maxtempval = 0
+    try:
+        hddtempobj = argonsysinfo_gethddtemp()
+        for curdev in hddtempobj:
+            if hddtempobj[curdev] > maxtempval:
+                maxtempval = hddtempobj[curdev]
+        return maxtempval
+    except:
+        return maxtempval
+
+def argonsysinfo_getcputemp():
     try:
         tempfp = open("/sys/class/thermal/thermal_zone0/temp", "r")
         temp = tempfp.readline()
@@ -137,8 +148,27 @@ def argonsysinfo_gettemp():
         return float(int(temp)/1000)
     except IOError:
         return 0
-    cval = val/1000
-    fval = 32+9*val/5000
+
+def argonsysinfo_gethddtemp():
+    outputobj = {}
+    hddtempcmd = "/usr/sbin/hddtemp"
+    if os.path.exists(hddtempcmd):
+        try:
+            tmp = os.popen("lsblk | grep -e '0 disk' | awk '{print $1}'").read()
+            alllines = tmp.split("\n")
+            for curdev in alllines:
+                if curdev[0:2] == "sd" or curdev[0:2] == "hd":
+                    temperaturestr = os.popen(hddtempcmd+" -n sata:/dev/"+curdev+" 2>&1").read()
+                    tempval = 0
+                    try:
+                        tempval = float(temperaturestr)
+                        outputobj[curdev] = tempval
+                    except:
+                        tempval = 0
+            return outputobj
+        except:
+            return outputobj
+    return outputobj
 
 def argonsysinfo_getip():
     ipaddr = ""
