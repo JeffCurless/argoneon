@@ -43,7 +43,7 @@ CHECKDEVICE="eon"    # Hardcoded for EON
 
 CHECKPLATFORM="Others"
 # Check if Raspbian, otherwise Ubuntu
-grep -q -F 'Raspbian' /etc/os-release &> /dev/null
+grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null
 if [ $? -eq 0 ]
 then
     CHECKPLATFORM="Raspbian"
