@@ -76,9 +76,17 @@ if len(ctemp ) > 4:
 if len(ftemp) > 5:
     ftemp = ftemp[0:5]
 
-print( "Temp: " )
+print( "CPU Temp:" )
 print( "    " + str(ctemp) + "C")
 print( "    " + str(ftemp) + "F")
+
+print( "HDD Temp:")
+tmp = argonsysinfo_gethddtemp()
+for item in tmp:
+    ctemp = str( tmp[item] );
+    ftemp = str( 32 + (9*tmp[item])/5 )
+    print( "    " + item + ": " + ctemp + "C" + "  " + ftemp + "F" )
+
 
 #
 # Display IP address
