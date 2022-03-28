@@ -196,7 +196,7 @@ def load_unitconfig(fname):
 def temp_check():
     CPUFanConfig = ["65=100", "60=55", "55=30"]
     HDDFanConfig = ["50=100", "40=55", "30=30"]
-    prevspeed = 0
+    prevspeed    = 0
 
     while True:
         tmpconfig = load_config("/etc/argononed.conf")
@@ -210,7 +210,6 @@ def temp_check():
             fanhddconfig = tmpconfig
         else:
             fanhddconfig = HDDFanConfig
-        prevspeed=0
 
         # Speed based on CPU Temp
         val = argonsysinfo_getcputemp()
@@ -229,16 +228,18 @@ def temp_check():
         if newspeed < prevspeed:
             # Pause 30s before speed reduction to prevent fluctuations
             time.sleep(30)
-        prevspeed = newspeed
         try:
-            if newspeed > 0:
-                # Spin up to prevent issues on older units
-                bus.write_byte(ADDR_FAN,100)
-                time.sleep(1)
-            bus.write_byte(ADDR_FAN,newspeed)
+            if  prevspeed != newspeed:
+                if newspeed > 0:
+                    # Spin up to prevent issues on older units
+                    bus.write_byte(ADDR_FAN,100)
+                    time.sleep(1)
+                bus.write_byte(ADDR_FAN,newspeed)
+                #print( "Set fan speed to ", newspeed)
             time.sleep(30)
         except IOError:
             time.sleep(60)
+        prevspeed = newspeed
 
 #
 # This function is the thread that updates OLED
