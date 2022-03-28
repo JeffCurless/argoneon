@@ -84,14 +84,14 @@ def shutdown_check(writeq):
 # This function converts the corresponding fanspeed for the given temperature
 # The configuration data is a list of strings in the form "<temperature>=<speed>"
 
-def get_fanspeed(tempval, configlist):
+def get_fanspeed(tempval, configlist): 
     for curconfig in configlist:
         curpair = curconfig.split("=")
         tempcfg = float(curpair[0])
         fancfg = int(float(curpair[1]))
         if tempval >= tempcfg:
-            if fancfg < 25:
-                return 25
+#            if fancfg < 25:
+#                return 25
             return fancfg
     return 0
 
@@ -194,24 +194,33 @@ def load_unitconfig(fname):
 # Location of config file varies based on OS
 #
 def temp_check():
-    fanconfig = ["65=100", "60=55", "55=30"]
-    fanhddconfig = ["50=100", "40=55", "30=30"]
+    CPUFanConfig = ["65=100", "60=55", "55=30"]
+    HDDFanConfig = ["50=100", "40=55", "30=30"]
+    prevspeed = 0
 
-    tmpconfig = load_config("/etc/argononed.conf")
-    if len(tmpconfig) > 0:
-        fanconfig = tmpconfig
-    tmpconfig = load_config("/etc/argononed-hdd.conf")
-    if len(tmpconfig) > 0:
-        fanhddconfig = tmpconfig
-
-    prevspeed=0
     while True:
+        tmpconfig = load_config("/etc/argononed.conf")
+        if len(tmpconfig) > 0:
+            fanconfig = tmpconfig
+        else:
+            fanconfig = CPUFanConfig
+
+        tmpconfig = load_config("/etc/argononed-hdd.conf")
+        if len(tmpconfig) > 0:
+            fanhddconfig = tmpconfig
+        else:
+            fanhddconfig = HDDFanConfig
+        prevspeed=0
+
         # Speed based on CPU Temp
         val = argonsysinfo_getcputemp()
         newspeed = get_fanspeed(val, fanconfig)
         # Speed based on HDD Temp
         val = argonsysinfo_getmaxhddtemp()
         tmpspeed = get_fanspeed(val, fanhddconfig)
+
+        #print( "CPU wants fan speed of",newspeed)
+        #print( "HDD wants fan speed of", tmpspeed)
 
         # Use faster fan speed
         if tmpspeed > newspeed:
