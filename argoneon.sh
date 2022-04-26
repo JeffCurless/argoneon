@@ -42,6 +42,7 @@ argon_check_pkg() {
 CHECKDEVICE="eon"    # Hardcoded for EON
 
 CHECKPLATFORM="Others"
+NEED_FAKE_HDDTEMP=0
 # Check if Raspbian, otherwise Ubuntu
 grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null
 if [ $? -eq 0 ]
@@ -54,12 +55,20 @@ then
         pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools)    
     fi
 else
-    # Ubuntu has serial and i2c enabled
-    if [ "$CHECKDEVICE" = "eon" ]
+    grep -q -F 'jammy' /etc/os-release &> /dev/null
+    if [ $? -eq 0 ]
     then
-        pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools hddtemp)    
+	# Ubuntu 22.04
+        pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil smartmontools)
+	NEED_FAKE_HDDTEMP=1
     else
-        pkglist=(python3-rpi.gpio python3-smbus i2c-tools)
+        # Ubuntu has serial and i2c enabled
+        if [ "$CHECKDEVICE" = "eon" ]
+        then
+            pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools hddtemp)    
+        else
+            pkglist=(python3-rpi.gpio python3-smbus i2c-tools)
+        fi
     fi
 fi
 
@@ -238,6 +247,12 @@ then
     sudo rm /usr/bin/$statuscmd
 fi
 sudo ln -s $statusscript /usr/bin/$statuscmd
+
+if [ ! -f /usr/sbin/hddtemp ]
+then
+    sudo curl -L $ARGONDOWNLOADSERVER/hddtemp -o /usr/sbin/hddtemp --silent
+    sudo chmod +x /usr/sbin/hddtemp
+fi
 
 # Argon Config Script
 if [ -f $configscript ]; then
