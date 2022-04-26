@@ -90,8 +90,6 @@ def get_fanspeed(tempval, configlist):
         tempcfg = float(curpair[0])
         fancfg = int(float(curpair[1]))
         if tempval >= tempcfg:
-#            if fancfg < 25:
-#                return 25
             return fancfg
     return 0
 
