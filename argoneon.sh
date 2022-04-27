@@ -39,36 +39,35 @@ argon_check_pkg() {
     fi
 }
 
-CHECKDEVICE="eon"    # Hardcoded for EON
-
 CHECKPLATFORM="Others"
-NEED_FAKE_HDDTEMP=0
-# Check if Raspbian, otherwise Ubuntu
-grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null
+pretty_name=`grep PRETTY_NAME /etc/os-release | awk -F"=" '{print $2}' | sed 's/"//g'`
+echo ${pretty_name} | grep -q -F Ubuntu
 if [ $? -eq 0 ]
 then
-    CHECKPLATFORM="Raspbian"
-    if [ "$CHECKDEVICE" = "eon" ]
+    version=`echo ${pretty_name} | awk '{print $2}'`
+    echo ${version}
+    if [ "${version}" == "21.04" ]
     then
-        pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil hddtemp)    
+        echo "Installing on Ubuntu 21.04"
+        pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools curl smartmontools)
+    elif [ "${version}" == "21.10" ]
+    then
+        echo "Installing on Ubuntu 21.10"
+        pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
+    elif [ "${version}" == "22.04" ]
+    then
+        echo "Installing on Ubuntu version 22.04"
+        pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
     else
-        pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools)    
+        echo "Unsupported Ubuntu verison: " ${pretty_name}
     fi
 else
-    grep -q -F 'jammy' /etc/os-release &> /dev/null
+    echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null
     if [ $? -eq 0 ]
     then
-	# Ubuntu 22.04
-        pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil smartmontools)
-	NEED_FAKE_HDDTEMP=1
-    else
-        # Ubuntu has serial and i2c enabled
-        if [ "$CHECKDEVICE" = "eon" ]
-        then
-            pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools hddtemp)    
-        else
-            pkglist=(python3-rpi.gpio python3-smbus i2c-tools)
-        fi
+        echo "Installing on RaspberryPI OS"
+        pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
+        CHECKPLATFORM="Raspbian"
     fi
 fi
 
@@ -143,19 +142,16 @@ if [ ! -f $daemonconfigfile ]; then
     echo '65=100' >> $daemonconfigfile
 fi
 
-if [ "$CHECKDEVICE" = "eon" ]
-then
-    if [ ! -f $daemonhddconfigfile ]; then
-        sudo touch $daemonhddconfigfile
-        sudo chmod 666 $daemonhddconfigfile
+if [ ! -f $daemonhddconfigfile ]; then
+    sudo touch $daemonhddconfigfile
+    sudo chmod 666 $daemonhddconfigfile
 
-        echo '#' >> $daemonhddconfigfile
-        echo '# Argon Fan Speed Configuration (HDD)' >> $daemonhddconfigfile
-        echo '#' >> $daemonhddconfigfile
-        echo '35=30' >> $daemonhddconfigfile
-        echo '40=55' >> $daemonhddconfigfile
-        echo '45=100' >> $daemonhddconfigfile
-    fi
+    echo '#' >> $daemonhddconfigfile
+    echo '# Argon Fan Speed Configuration (HDD)' >> $daemonhddconfigfile
+    echo '#' >> $daemonhddconfigfile
+    echo '35=30' >> $daemonhddconfigfile
+    echo '40=55' >> $daemonhddconfigfile
+    echo '45=100' >> $daemonhddconfigfile
 fi
 
 # Generate default Unit config file if non-existent
@@ -167,68 +163,66 @@ if [ ! -f $unitconfigfile ]; then
 fi
 
 
-if [ "$CHECKDEVICE" = "eon" ]
-then
-    # RTC Setup
-    basename="argoneon"
-    daemonname=$basename"d"
+# RTC Setup
+basename="argoneon"
+daemonname=$basename"d"
 
-    rtcconfigfile=/etc/argoneonrtc.conf
-    rtcconfigscript=$INSTALLATIONFOLDER/${basename}-rtcconfig.sh
-    daemonrtcservice=/lib/systemd/system/$daemonname.service
-    rtcdaemonscript=$INSTALLATIONFOLDER/$daemonname.py
+rtcconfigfile=/etc/argoneonrtc.conf
+rtcconfigscript=$INSTALLATIONFOLDER/${basename}-rtcconfig.sh
+daemonrtcservice=/lib/systemd/system/$daemonname.service
+rtcdaemonscript=$INSTALLATIONFOLDER/$daemonname.py
 
-    oledconfigscript=$INSTALLATIONFOLDER/${basename}-oledconfig.sh
-    oledlibscript=$INSTALLATIONFOLDER/${basename}oled.py
-    oledconfigfile=/etc/argoneonoled.conf
+oledconfigscript=$INSTALLATIONFOLDER/${basename}-oledconfig.sh
+oledlibscript=$INSTALLATIONFOLDER/${basename}oled.py
+oledconfigfile=/etc/argoneonoled.conf
 
-    # Generate default RTC config file if non-existent
-    if [ ! -f $rtcconfigfile ]; then
-        sudo touch $rtcconfigfile
-        sudo chmod 666 $rtcconfigfile
+# Generate default RTC config file if non-existent
+if [ ! -f $rtcconfigfile ]; then
+    sudo touch $rtcconfigfile
+    sudo chmod 666 $rtcconfigfile
 
-        echo '#' >> $rtcconfigfile
-        echo '# Argon RTC Configuration' >> $rtcconfigfile
-        echo '#' >> $rtcconfigfile
-    fi
-    # Generate default OLED config file if non-existent
-    if [ ! -f $oledconfigfile ]; then
-        sudo touch $oledconfigfile
-        sudo chmod 666 $oledconfigfile
-
-        echo '#' >> $oledconfigfile
-        echo '# Argon OLED Configuration' >> $oledconfigfile
-        echo '#' >> $oledconfigfile
-        echo 'switchduration=30' >> $oledconfigfile
-        echo 'screenlist="clock cpu storage bandwidth raid ram temp ip"' >> $oledconfigfile
-    fi
-
-
-    # RTC Config Script
-    sudo curl -L $ARGONDOWNLOADSERVER/argoneon-rtcconfig.sh -o $rtcconfigscript --silent
-    sudo chmod 755 $rtcconfigscript
-
-    # RTC Daemon/Service Files
-    sudo curl -L $ARGONDOWNLOADSERVER/argoneond.py -o $rtcdaemonscript --silent
-    sudo curl -L $ARGONDOWNLOADSERVER/argoneond.service -o $daemonrtcservice --silent
-    sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript --silent
-    sudo chmod 644 $daemonrtcservice
-
-    # OLED Config Script
-    sudo curl -L $ARGONDOWNLOADSERVER/argoneon-oledconfig.sh -o $oledconfigscript --silent 
-    sudo chmod 755 $oledconfigscript
-
-
-    if [ ! -d $INSTALLATIONFOLDER/oled ]
-    then
-        sudo mkdir $INSTALLATIONFOLDER/oled
-    fi
-
-    for binfile in font8x6 font16x12 font32x24 font64x48 font16x8 font24x16 font48x32 bgdefault bgram bgip bgtemp bgcpu bgraid bgstorage bgtime
-    do
-        sudo curl -L $ARGONDOWNLOADSERVER/oled/${binfile}.bin -o $INSTALLATIONFOLDER/oled/${binfile}.bin --silent 
-    done
+    echo '#' >> $rtcconfigfile
+    echo '# Argon RTC Configuration' >> $rtcconfigfile
+    echo '#' >> $rtcconfigfile
 fi
+# Generate default OLED config file if non-existent
+if [ ! -f $oledconfigfile ]; then
+    sudo touch $oledconfigfile
+    sudo chmod 666 $oledconfigfile
+
+    echo '#' >> $oledconfigfile
+    echo '# Argon OLED Configuration' >> $oledconfigfile
+    echo '#' >> $oledconfigfile
+    echo 'switchduration=30' >> $oledconfigfile
+    echo 'screenlist="clock cpu storage bandwidth raid ram temp ip"' >> $oledconfigfile
+fi
+
+
+# RTC Config Script
+sudo curl -L $ARGONDOWNLOADSERVER/argoneon-rtcconfig.sh -o $rtcconfigscript --silent
+sudo chmod 755 $rtcconfigscript
+
+# RTC Daemon/Service Files
+sudo curl -L $ARGONDOWNLOADSERVER/argoneond.py -o $rtcdaemonscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argoneond.service -o $daemonrtcservice --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript --silent
+sudo chmod 644 $daemonrtcservice
+
+# OLED Config Script
+sudo curl -L $ARGONDOWNLOADSERVER/argoneon-oledconfig.sh -o $oledconfigscript --silent 
+sudo chmod 755 $oledconfigscript
+
+
+if [ ! -d $INSTALLATIONFOLDER/oled ]
+then
+    sudo mkdir $INSTALLATIONFOLDER/oled
+fi
+
+for binfile in font8x6 font16x12 font32x24 font64x48 font16x8 font24x16 font48x32 bgdefault bgram bgip bgtemp bgcpu bgraid bgstorage bgtime
+do
+    sudo curl -L $ARGONDOWNLOADSERVER/oled/${binfile}.bin -o $INSTALLATIONFOLDER/oled/${binfile}.bin --silent 
+done
+
 
 
 # Argon Uninstall Script
@@ -247,12 +241,6 @@ then
     sudo rm /usr/bin/$statuscmd
 fi
 sudo ln -s $statusscript /usr/bin/$statuscmd
-
-if [ ! -f /usr/sbin/hddtemp ]
-then
-    sudo curl -L $ARGONDOWNLOADSERVER/hddtemp -o /usr/sbin/hddtemp --silent
-    sudo chmod +x /usr/sbin/hddtemp
-fi
 
 # Argon Config Script
 if [ -f $configscript ]; then
@@ -305,13 +293,11 @@ echo '    echo "  2. Configure IR"' >> $configscript
 
 uninstalloption="4"
 
-if [ "$CHECKDEVICE" = "eon" ]
-then
-    # ArgonEON Has RTC
-    echo '    echo "  3. Configure RTC and/or Schedule"' >> $configscript
-    echo '    echo "  4. Configure OLED"' >> $configscript
-    uninstalloption="6"
-fi
+# ArgonEON Has RTC
+echo '    echo "  3. Configure RTC and/or Schedule"' >> $configscript
+echo '    echo "  4. Configure OLED"' >> $configscript
+uninstalloption="6"
+
 
 unitsoption=$(($uninstalloption-1))
 echo "    echo \"  $unitsoption. Configure Units\"" >> $configscript
@@ -330,47 +316,37 @@ echo '        mainloopflag=0' >> $configscript
 echo '    elif [ $newmode -eq 1 ]' >> $configscript
 echo '    then' >> $configscript
 
-if [ "$CHECKDEVICE" = "eon" ]
-then
-    echo '        echo "Choose Triggers:"' >> $configscript
-    echo '        echo "  1. CPU Temperature"' >> $configscript
-    echo '        echo "  2. HDD Temperature"' >> $configscript
-    echo '        echo ""' >> $configscript
-    echo '        echo "  0. Cancel"' >> $configscript
-    echo "        echo -n \"Enter Number (0-2):\"" >> $configscript
-    echo '        submode=$( get_number )' >> $configscript
+echo '        echo "Choose Triggers:"' >> $configscript
+echo '        echo "  1. CPU Temperature"' >> $configscript
+echo '        echo "  2. HDD Temperature"' >> $configscript
+echo '        echo ""' >> $configscript
+echo '        echo "  0. Cancel"' >> $configscript
+echo "        echo -n \"Enter Number (0-2):\"" >> $configscript
+echo '        submode=$( get_number )' >> $configscript
 
-    echo '        if [ $submode -eq 1 ]' >> $configscript
-    echo '        then' >> $configscript
-    echo "            $fanconfigscript" >> $configscript
-    echo '            mainloopflag=0' >> $configscript
-    echo '        elif [ $submode -eq 2 ]' >> $configscript
-    echo '        then' >> $configscript
-    echo "            $fanconfigscript hdd" >> $configscript
-    echo '            mainloopflag=0' >> $configscript
-    echo '        fi' >> $configscript
-
-else
-    echo "        $fanconfigscript" >> $configscript
-    echo '        mainloopflag=0' >> $configscript
-fi
+echo '        if [ $submode -eq 1 ]' >> $configscript
+echo '        then' >> $configscript
+echo "            $fanconfigscript" >> $configscript
+echo '            mainloopflag=0' >> $configscript
+echo '        elif [ $submode -eq 2 ]' >> $configscript
+echo '        then' >> $configscript
+echo "            $fanconfigscript hdd" >> $configscript
+echo '            mainloopflag=0' >> $configscript
+echo '        fi' >> $configscript
 
 echo '    elif [ $newmode -eq 2 ]' >> $configscript
 echo '    then' >> $configscript
 echo "        $irconfigscript" >> $configscript
 echo '        mainloopflag=0' >> $configscript
 
-if [ "$CHECKDEVICE" = "eon" ]
-then
-    echo '    elif [ $newmode -eq 3 ]' >> $configscript
-    echo '    then' >> $configscript
-    echo "        $rtcconfigscript" >> $configscript
-    echo '        mainloopflag=0' >> $configscript
-    echo '    elif [ $newmode -eq 4 ]' >> $configscript
-    echo '    then' >> $configscript
-    echo "        $oledconfigscript" >> $configscript
-    echo '        mainloopflag=0' >> $configscript
-fi
+echo '    elif [ $newmode -eq 3 ]' >> $configscript
+echo '    then' >> $configscript
+echo "        $rtcconfigscript" >> $configscript
+echo '        mainloopflag=0' >> $configscript
+echo '    elif [ $newmode -eq 4 ]' >> $configscript
+echo '    then' >> $configscript
+echo "        $oledconfigscript" >> $configscript
+echo '        mainloopflag=0' >> $configscript
 
 echo "    elif [ \$newmode -eq $unitsoption ]" >> $configscript
 echo '    then' >> $configscript
@@ -396,11 +372,7 @@ then
     then
         terminalcmd="xfce4-terminal --default-working-directory=/home/pi/ -T"
     fi
-    imagefile=ar1config.png
-    if [ "$CHECKDEVICE" = "eon" ]
-    then
-        imagefile=argoneon.png
-    fi
+    imagefile=argoneon.png
     sudo curl -L $ARGONDOWNLOADSERVER/$imagefile -o /usr/share/pixmaps/$imagefile --silent
     if [ -f $shortcutfile ]; then
         sudo rm $shortcutfile
@@ -429,30 +401,21 @@ then
     fi
     sudo ln -s $configscript /usr/bin/$configcmd
 
-    if [ "$CHECKDEVICE" = "one" ]
-    then
-        sudo ln -s $configscript /usr/bin/argonone-config
-        sudo ln -s $uninstallscript /usr/bin/argonone-uninstall
-        sudo ln -s $irconfigscript /usr/bin/argonone-ir
-    fi
+    sudo ln -s $configscript /usr/bin/argonone-config
+    sudo ln -s $uninstallscript /usr/bin/argonone-uninstall
+    sudo ln -s $irconfigscript /usr/bin/argonone-ir
 
 
     # Enable and Start Service(s)
     sudo systemctl daemon-reload
     sudo systemctl enable argononed.service
     sudo systemctl start argononed.service
-    if [ "$CHECKDEVICE" = "eon" ]
-    then
-        sudo systemctl enable argoneond.service
-        sudo systemctl start argoneond.service
-    fi
+    sudo systemctl enable argoneond.service
+    sudo systemctl start argoneond.service
 else
     sudo systemctl daemon-reload
     sudo systemctl restart argononed.service
-    if [ "$CHECKDEVICE" = "eon" ]
-    then
-        sudo systemctl restart argoneond.service
-    fi
+    sudo systemctl restart argoneond.service
 fi
 
 echo "*********************"
