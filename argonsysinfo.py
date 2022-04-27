@@ -151,14 +151,16 @@ def argonsysinfo_getcputemp():
 
 def argonsysinfo_gethddtemp():
     outputobj = {}
-    hddtempcmd = "/usr/sbin/hddtemp"
+    hddtempcmd = "/usr/sbin/smartctl"
+    #smartctl -d sat -A ${device} | grep 194 | awk -F" " '{print $10}'
+
     if os.path.exists(hddtempcmd):
         try:
             tmp = os.popen("lsblk | grep -e '0 disk' | awk '{print $1}'").read()
             alllines = tmp.split("\n")
             for curdev in alllines:
                 if curdev[0:2] == "sd" or curdev[0:2] == "hd":
-                    temperaturestr = os.popen(hddtempcmd+" -n sata:/dev/"+curdev+" 2>&1").read()
+                    temperaturestr = os.popen(hddtempcmd+" -d sat -A /dev/"+curdev+" | grep 194 | awk '{print $10}' 2>&1").read()
                     tempval = 0
                     try:
                         tempval = float(temperaturestr)
