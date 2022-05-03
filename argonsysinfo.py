@@ -156,11 +156,15 @@ def argonsysinfo_gethddtemp():
 
     if os.path.exists(hddtempcmd):
         try:
-            tmp = os.popen("lsblk | grep -e '0 disk' | awk '{print $1}'").read()
+            command = os.popen("lsblk | grep -e '0 disk' | awk '{print $1}'")
+            tmp = command.read()
+            command.close()
             alllines = tmp.split("\n")
             for curdev in alllines:
                 if curdev[0:2] == "sd" or curdev[0:2] == "hd":
-                    temperaturestr = os.popen(hddtempcmd+" -d sat -A /dev/"+curdev+" | grep 194 | awk '{print $10}' 2>&1").read()
+                    command = os.popen(hddtempcmd+" -d sat -A /dev/"+curdev+" | grep 194 | awk '{print $10}' 2>&1")
+                    temperaturestr = command.read()
+                    command.close()
                     tempval = 0
                     try:
                         tempval = float(temperaturestr)
@@ -199,7 +203,9 @@ def argonsysinfo_getipList():
     return iplist
 
 def argonsysinfo_getrootdev():
-    tmp = os.popen('mount').read()
+    command = os.popen('mount')
+    tmp = command.read()
+    command.close()
     alllines = tmp.split("\n")
 
     for temp in alllines:
@@ -225,7 +231,9 @@ def argonsysinfo_listhddusage():
 
     rootdev = argonsysinfo_getrootdev()
 
-    tmp = os.popen('df').read()
+    command = os.popen('df')
+    tmp = command.read()
+    command.close()
     alllines = tmp.split("\n")
 
     for temp in alllines:
@@ -341,7 +349,9 @@ def argonsysinfo_getraiddetail(devname):
     spare = 0
     resync = ""
     hddlist =[]
-    tmp = os.popen('sudo mdadm -D /dev/'+devname).read()
+    command = os.popen('mdadm -D /dev/'+devname)
+    tmp  command.read()
+    command.close()
     alllines = tmp.split("\n")
 
     for temp in alllines:
@@ -390,7 +400,9 @@ def argonsysinfo_diskusagedetail( disk ):
     writesector = 0
     discardsector = 0
 
-    tmp = os.popen( "cat /sys/block/" + disk + "/stat" ).read()
+    command = os.popen( "cat /sys/block/" + disk + "/stat" )
+    tmp = command.read()
+    command.close()
     tmp.replace('\t',' ')
     tmp = tmp.strip()
     while tmp.find("  ") >= 0:
