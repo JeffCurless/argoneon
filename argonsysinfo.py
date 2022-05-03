@@ -350,7 +350,7 @@ def argonsysinfo_getraiddetail(devname):
     resync = ""
     hddlist =[]
     command = os.popen('mdadm -D /dev/'+devname)
-    tmp  command.read()
+    tmp = command.read()
     command.close()
     alllines = tmp.split("\n")
 
