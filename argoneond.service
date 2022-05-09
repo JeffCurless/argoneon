@@ -6,5 +6,6 @@ Type=simple
 Restart=always
 RemainAfterExit=true
 ExecStart=/usr/bin/python3 /etc/argon/argoneond.py SERVICE
+#ExecStopPost=/usr/bin/python3 /etc/argon/argoneond.py SHUTDOWN
 [Install]
 WantedBy=multi-user.target
