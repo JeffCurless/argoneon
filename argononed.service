@@ -6,5 +6,6 @@ Type=simple
 Restart=always
 RemainAfterExit=true
 ExecStart=/usr/bin/python3 /etc/argon/argononed.py SERVICE
+ExecStopPost=/usr/bin/python3 /etc/argon/argononed.py FANOFF
 [Install]
 WantedBy=multi-user.target
