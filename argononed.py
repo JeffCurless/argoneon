@@ -194,7 +194,14 @@ def getCurrentFanSpeed():
     except FileNotFoundError:
         return None
 
-def temp_check():
+def setFanOff ():
+    setFanSpeed (overrideSpeed = 0)
+
+def setFanFlatOut ():
+    setFanSpeed (overrideSpeed = 100)
+
+def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
+
     CPUFanConfig = {65.0:100, 60.0:55, 55.0: 30}
     HDDFanConfig = {50.0:100, 40.0:55, 30.0: 30}
 
@@ -204,29 +211,42 @@ def temp_check():
         except:
             ...
 
-    prevspeed    = 0
-    writeSpeed (prevspeed)
-    while True:
+    prevspeed    = getCurrentFanSpeed()
+    if not prevspeed:
+        prevspeed = 0
+        writeSpeed (prevspeed)
+    
+    if overrideSpeed is not None:
+        newspeed = overrideSpeed
+    else:
         newspeed = max([get_fanspeed(argonsysinfo_getcputemp(), load_config("/etc/argononed.conf",CPUFanConfig))
                        ,get_fanspeed(argonsysinfo_getmaxhddtemp(), load_config("/etc/argononed-hdd.conf",HDDFanConfig))
                        ]
                       )
-
-        if newspeed < prevspeed:
+        if newspeed < prevspeed and not instantaneous:
             # Pause 30s before speed reduction to prevent fluctuations
             time.sleep(30)
+    # Make sure the value is in 0-100 range
+    newspeed = max([min([100,newspeed])
+                   ,0
+                   ]
+                  )
+    if  prevspeed != newspeed:
         try:
-            if  prevspeed != newspeed:
-                if newspeed > 0:
-                    # Spin up to prevent issues on older units
-                    bus.write_byte(ADDR_FAN,100)
-                    time.sleep(1)
-                bus.write_byte(ADDR_FAN,newspeed)
-                writeSpeed (newspeed)
+            if newspeed > 0:
+                # Spin up to prevent issues on older units
+                bus.write_byte(ADDR_FAN,100)
+                time.sleep(1)
+            bus.write_byte(ADDR_FAN,newspeed)
         except IOError:
-            ...
+            return prevspeed
+    writeSpeed (newspeed)
+    return newspeed
+
+def temp_check():
+    while True:
+        setFanSpeed (instantaneous = False)
         time.sleep(60)
-        prevspeed = newspeed
 #
 # This function is the thread that updates OLED
 #
