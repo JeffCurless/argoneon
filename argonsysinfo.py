@@ -155,25 +155,40 @@ def argonsysinfo_gethddtemp():
     #smartctl -d sat -A ${device} | grep 194 | awk -F" " '{print $10}'
 
     if os.path.exists(hddtempcmd):
-        try:
+        # try:
             command = os.popen("lsblk | grep -e '0 disk' | awk '{print $1}'")
             tmp = command.read()
             command.close()
-            alllines = tmp.split("\n")
+            alllines = [l for l in tmp.split("\n") if l]
             for curdev in alllines:
                 if curdev[0:2] == "sd" or curdev[0:2] == "hd":
-                    command = os.popen(hddtempcmd+" -d sat -A /dev/"+curdev+" | grep 194 | awk '{print $10}' 2>&1")
-                    temperaturestr = command.read()
-                    command.close()
-                    tempval = 0
-                    try:
-                        tempval = float(temperaturestr)
-                        outputobj[curdev] = tempval
-                    except:
-                        tempval = 0
-            return outputobj
-        except:
-            return outputobj
+                    # command = os.popen(hddtempcmd+" -d sat -A /dev/"+curdev+" | grep 194 | awk '{print $10}' 2>&1")
+                    def getSmart(smartCmd):
+                        try:
+                            command = os.popen(smartCmd)
+                            smartctlOutRaw = command.read()
+                        except Exception as e:
+                            print (e)
+                        finally:
+                            command.close()
+                        if 'Permission denied' in smartctlOutRaw and not smartCmd.startswith('sudo'):
+                            return getSmart(f"sudo {smartCmd}")
+                        
+                        smartctlOut = [l for l in smartctlOutRaw.split('\n') if l]
+
+                        for smartAttr in ["194","190"]:
+                            try:
+                                line = [l for l in smartctlOut if l.startswith(smartAttr)][0]
+                                parts = [p for p in line.replace('\t',' ').split(' ') if p]
+                                tempval = float(parts[9])
+                                return tempval
+                            except IndexError:
+                                ## Smart Attr not found
+                                ...
+                        return None
+                    theTemp = getSmart(f"{hddtempcmd} -d sat -A /dev/{curdev}")
+                    if theTemp:
+                        outputobj[curdev] = theTemp
     return outputobj
 
 def argonsysinfo_getip():
@@ -250,8 +265,14 @@ def argonsysinfo_listhddusage():
             elif infolist[0][0:5] != "/dev/":
                 continue
             curdev = infolist[0]
+            mapper = None
+            if curdev.startswith('/dev/mapper/'):
+                from pathlib import Path
+                mapper = Path(curdev).readlink().name
+
             if curdev == "/dev/root" and rootdev != "":
                 curdev = rootdev
+
             tmpidx = curdev.rfind("/")
             if tmpidx >= 0:
                 curdev = curdev[tmpidx+1:]
@@ -260,16 +281,21 @@ def argonsysinfo_listhddusage():
             #
             if curdev in raidlist['hddlist']:
                 continue
-            elif curdev not in raiddevlist:
+            elif curdev not in raiddevlist and not mapper:
               if curdev[0:2] == "sd" or curdev[0:2] == "hd":
                   curdev = curdev[0:-1]
               else:
                   curdev = curdev[0:-2]
+                  
             percent=infolist[4].split("%")[0]
-            if curdev in outputobj:
-                outputobj[curdev] = {"used":outputobj[curdev]['used']+int(infolist[2]), "total":outputobj[curdev]['total']+int(infolist[1]), "percent":outputobj[curdev]['percent']+int(percent)}
-            else:
-                outputobj[curdev] = {"used":int(infolist[2]), "total":int(infolist[1]), "percent":int(percent)}
+            if curdev not in outputobj:
+                outputobj[curdev] = {"used":0, "total":0, "percent":0}
+                if  mapper:
+                    outputobj[curdev]["mapper"] = mapper
+
+            outputobj[curdev]["used"]         += int(infolist[2])
+            outputobj[curdev]["total"]        += int(infolist[1])
+            outputobj[curdev]["percent"]      += int(percent)
 
     return outputobj
 
@@ -395,12 +421,16 @@ def argonsysinfo_getraiddetail(devname):
                 hddlist.append(infolist[6])
     return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync, "hddlist":hddlist}
 
-def argonsysinfo_diskusagedetail( disk ):
+def argonsysinfo_diskusagedetail( disk,mapper : str = None ):
     readsector = 0
     writesector = 0
     discardsector = 0
 
-    command = os.popen( "cat /sys/block/" + disk + "/stat" )
+    if mapper:
+        this = mapper
+    else:
+        this = disk
+    command = os.popen( "cat /sys/block/" + this + "/stat" )
     tmp = command.read()
     command.close()
     tmp.replace('\t',' ')
@@ -418,7 +448,10 @@ def argonsysinfo_diskusage():
     usage = []
     hddlist = argonsysinfo_listhddusage()
     for disk in hddlist:
-        temp = argonsysinfo_diskusagedetail( disk )
+        parms = {"disk" : disk}
+        if "mapper" in hddlist[disk]:
+            parms["mapper"] = hddlist[disk]["mapper"]
+        temp = argonsysinfo_diskusagedetail( **parms )
         usage.append( temp )
 
     return usage
