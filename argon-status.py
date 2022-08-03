@@ -7,94 +7,147 @@ import math
 sys.path.append( "/etc/argon/")
 from argonsysinfo import *
 
+from argononed import getCurrentFanSpeed
+
 usage1 = argonsysinfo_diskusage()
 start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+
+
+def printTable(myDict, colList=None, title : str = None):
+   """ Pretty print a list of dictionaries (myDict) as a dynamically sized table.
+   If column names (colList) aren't specified, they will show in random order.
+   Author: Thierry Husson - Use it as you want but don't blame me.
+   """
+   if isinstance(myDict,dict):
+        myDict = [myDict]
+        
+   if title:
+      print (f"\n{title}")
+
+   if not colList: colList = list(myDict[0].keys() if myDict else [])
+   myList = [colList] # 1st row = header
+   for item in myDict: myList.append([str(item[col] if item[col] is not None else '') for col in colList])
+   colSize = [max(map(len,col)) for col in zip(*myList)]
+   colSep = ' | '
+   fullWidth = sum(colSize)+((len(colSize)-1)*len(colSep))
+   formatStr = colSep.join(["{{:<{}}}".format(i) for i in colSize])
+   myList.insert(1, ['-' * i for i in colSize]) # Seperating line
+   
+   print ('-'*fullWidth)
+   for item in myList: print(formatStr.format(*item))
+   
+   def centre (string):
+     strLen = len(string)
+     if strLen < fullWidth:
+        padLen = int((fullWidth-strLen)/2)
+        if padLen > 0:
+            string = string.rjust(strLen+padLen)
+     print (string)
+   if len (myDict) == 0:
+      centre ("* No data to display *")
+   print ('-'*fullWidth)
+
 #
 # Display CPU Utilization
 # 
-print( "CPU Utilization:" )
-cpulist = argonsysinfo_listcpuusage()
-maxcpu = 4
-while maxcpu > 0 and len(cpulist) > 0:
-    curline = ""
-    item = cpulist.pop(0)
-    curline = "    " + item["title"] + ": " + str(item["value"]) + "%"
-    print( curline )
-    maxcpu = maxcpu - 1
+printTable([{"CPU" : d["title"], "%" : d["value"] } for d in argonsysinfo_listcpuusage()]
+          ,['CPU','%']
+          ,title = 'CPU Utilisation:'
+          )
+
+
+printTable({"Speed %" : getCurrentFanSpeed()}
+          ,['Speed %']
+          ,title = 'Fan Speed'
+          )
 
 #
 # Display Usage
 #
-print( "Storage Usage:" )
 hddlist = argonsysinfo_listhddusage()
+
+lst = []
 for dev in hddlist:
-    total = hddlist[dev]['total']
-    used  = hddlist[dev]['used']
-    percent = hddlist[dev]['percent']
-    print( "    Device : " + dev + " Total : " + argonsysinfo_kbstr(total) + " Used: " + argonsysinfo_kbstr(used) + " Usage: " + str(percent) + "%" ) 
+    lst.append ({"Device": dev
+                ,"Total": argonsysinfo_kbstr(hddlist[dev]['total'])
+                ,"Used": argonsysinfo_kbstr(hddlist[dev]['used'])
+                ,"Pct": f"{hddlist[dev]['percent']}%"
+                }
+               ) 
+printTable(lst,["Device","Total","Used","Pct"], title = "Storage Usage:")
 
 #
 # Display RAID
 #
-print( "RAID Arrays:" )
-raidinfo = argonsysinfo_listraid()
-raidlist = raidinfo['raidlist']
-hddlist  = raidinfo['hddlist']
-while len(raidlist) > 0:
-    item = raidlist.pop(0)
-    rebuild = ""
-    if len(item['info']['resync']) > 0:
-        rebuild = " Rebuild: " + item['info']['resync']
+raidlist = argonsysinfo_listraid()['raidlist']
+lst = []
+rebuildExists=False
+keys = ['Device','Type','Size','State']
+for item in raidlist:
     stateArray = item['info']['state'].split( ", " )
     if len(stateArray) == 1:
         state = stateArray[0]
-    if len(stateArray) == 2:
+    elif len(stateArray) == 2:
         state = stateArray[1]
-    if len(stateArray) >= 3:
+    elif len(stateArray) >= 3:
         state = stateArray[2]
-    state = state.capitalize()
-    print( "    Device: " + item['title'] + " Type: " + item['info']['raidtype'].upper() + " State: " + state + " Size: " +argonsysinfo_kbstr(item['info']['size'] ) + rebuild )
-
+    else:
+        state = None
+    thisDict = {'Device ' : item['title']
+               ,'Type'    : item['info']['raidtype'].upper()
+               ,'Size'    : argonsysinfo_kbstr(item['info']['size'])
+               ,'State'   : state.capitalize()
+               ,'Rebuild' : None
+               }
+    if len(item['info']['resync']) > 0:
+        rebuildExists = True
+        thisDict['Rebuild'] = item['info']['resync']
+    lst.append (thisDict)
+if rebuildExists:
+    keys.append ("Rebuild")
+printTable(lst,keys, title = "RAID Arrays:" )
 #print( "Drives used in RAID:" )
 #print( hddlist )
 #
 # Display memory usage
 #
 tmp = argonsysinfo_getram()
-print( "Memory:")
-print( "    Total: " + tmp[1] )
-print( "    Free : " + tmp[0] )
-
+printTable({"Total":tmp[1],"Free":tmp[0]},title="Memory:")
 #
 # Display temp
 #
-tmp = argonsysinfo_getcputemp()
-ctemp = str(tmp)
-ftemp = str(32 + (9*tmp)/5)
-if len(ctemp ) > 4:
-    ctemp = ctemp[0:4]
-if len(ftemp) > 5:
-    ftemp = ftemp[0:5]
+def CtoF (celcius):
+    return (32 + (9*celcius)/5)
 
-print( "CPU Temp:" )
-print( "    " + str(ctemp) + "C")
-print( "    " + str(ftemp) + "F")
+def smarterRound (value, dp = 1):
+    val = round(value,dp)
+    if dp > 0:
+        val = str(val).rstrip('0').rstrip('.')
+    return val
 
-print( "HDD Temp:")
+rawtemp = argonsysinfo_getcputemp()
+ctemp   = smarterRound(rawtemp)
+ftemp   = smarterRound(CtoF(rawtemp),2)
+
+printTable({"°C":ctemp,"°F":ftemp},title = "CPU Temp:")
+#
+
 tmp = argonsysinfo_gethddtemp()
+lst = []
 for item in tmp:
-    ctemp = str( tmp[item] );
-    ftemp = str( 32 + (9*tmp[item])/5 )
-    print( "    " + item + ": " + ctemp + "C" + "  " + ftemp + "F" )
+    rawtemp = tmp[item]
+    ctemp   = smarterRound(rawtemp)
+    ftemp   = smarterRound(CtoF(rawtemp),2)
+    lst.append ({'Device': item, "°C":ctemp,"°F":ftemp})
+printTable(lst,title = "HDD Temp:")    
+
 
 
 #
 # Display IP address
 #
-tmp = argonsysinfo_getipList()
-print( "IP Address : " )
-for item in tmp:
-    print( "    " + item[0] + ": " + item[1] )
+lst = [{"Interface":item[0], 'IP':item[1]} for item in argonsysinfo_getipList()]
+printTable(lst,title = "IP Addresses:")    
 
 #
 # Disk Utilization
@@ -109,9 +162,12 @@ for istop in usage2:
             istop['writesector'] = istop['writesector'] - istart['writesector']
 
 span = ((stop - start)/1000000000)
+lst = []
 for item in usage2:
     readbw = (item['readsector']/2)/span
     writebw = (item['writesector']/2)/span
-    print( item['disk'] + " read: " + argonsysinfo_kbstr(int(readbw)) + "/Sec write: " + argonsysinfo_kbstr(int(writebw)) + "/Sec" )
+    lst.append ({'Device': item['disk'], "Read/Sec": argonsysinfo_kbstr(int(readbw)), "Write/Sec" : argonsysinfo_kbstr(int(writebw))})
+printTable(lst,title = "Disk Utilisation:")    
+    
 
 
