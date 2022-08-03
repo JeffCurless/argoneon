@@ -23,6 +23,8 @@
 # sys.path.append('/storage/.kodi/addons/virtual.rpi-tools/lib')
 import RPi.GPIO as GPIO
 
+
+from pathlib import Path
 import sys
 import os
 import time
@@ -85,52 +87,44 @@ def shutdown_check(writeq):
 # The configuration data is a list of strings in the form "<temperature>=<speed>"
 
 def get_fanspeed(tempval, configlist): 
-    for curconfig in configlist:
-        curpair = curconfig.split("=")
-        tempcfg = float(curpair[0])
-        fancfg = int(float(curpair[1]))
-        if tempval >= tempcfg:
-            return fancfg
-    return 0
+    retval = 0
+    if len(configlist) > 0:
+        retval = configlist[max([k for k in configlist.keys() if tempval >= k])]
+    return retval
+
 
 # This function retrieves the fanspeed configuration list from a file, arranged by temperature
 # It ignores lines beginning with "#" and checks if the line is a valid temperature-speed pair
 # The temperature values are formatted to uniform length, so the lines can be sorted properly
 
-def load_config(fname):
-    newconfig = []
-    try:
-        with open(fname, "r") as fp:
-            for curline in fp:
-                if not curline:
+def load_config(fname, defaults):
+    file = Path(fname)
+    newconfig = {}
+    if file.is_file():
+        lines = [f.strip() for f in file.read_text().split('\n') if f and not f.strip(' ').startswith('#')]
+        for tmpline in lines:
+            tmppair = tmpline.split("=")
+            if len(tmppair) != 2:
+                continue
+            tempval = 0
+            fanval = 0
+            try:
+                tempval = float(tmppair[0])
+                if tempval < 0 or tempval > 100:
                     continue
-                tmpline = curline.strip()
-                if not tmpline:
+            except:
+                continue
+            try:
+                fanval = int(float(tmppair[1]))
+                if fanval < 0 or fanval > 100:
                     continue
-                if tmpline[0] == "#":
-                    continue
-                tmppair = tmpline.split("=")
-                if len(tmppair) != 2:
-                    continue
-                tempval = 0
-                fanval = 0
-                try:
-                    tempval = float(tmppair[0])
-                    if tempval < 0 or tempval > 100:
-                        continue
-                except:
-                    continue
-                try:
-                    fanval = int(float(tmppair[1]))
-                    if fanval < 0 or fanval > 100:
-                        continue
-                except:
-                    continue
-                newconfig.append( "{:5.1f}={}".format(tempval,fanval))
-        if len(newconfig) > 0:
-            newconfig.sort(reverse=True)
-    except:
-        return []
+            except:
+                continue
+            newconfig[tempval] = fanval
+    
+    if len(newconfig) == 0:
+        newconfig = defaults
+        
     return newconfig
 
 # Load OLED Config file
@@ -191,37 +185,32 @@ def load_unitconfig(fname):
 #
 # Location of config file varies based on OS
 #
+
+speed = Path('/tmp/fanspeed.txt')
+
+def getCurrentFanSpeed():
+    try:
+        return int(speed.read_text())
+    except FileNotFoundError:
+        return None
+
 def temp_check():
-    CPUFanConfig = ["65=100", "60=55", "55=30"]
-    HDDFanConfig = ["50=100", "40=55", "30=30"]
+    CPUFanConfig = {65.0:100, 60.0:55, 55.0: 30}
+    HDDFanConfig = {50.0:100, 40.0:55, 30.0: 30}
+
+    def writeSpeed(theSpeed):
+        try:
+            speed.write_text(str(theSpeed))
+        except:
+            ...
+
     prevspeed    = 0
-
+    writeSpeed (prevspeed)
     while True:
-        tmpconfig = load_config("/etc/argononed.conf")
-        if len(tmpconfig) > 0:
-            fanconfig = tmpconfig
-        else:
-            fanconfig = CPUFanConfig
-
-        tmpconfig = load_config("/etc/argononed-hdd.conf")
-        if len(tmpconfig) > 0:
-            fanhddconfig = tmpconfig
-        else:
-            fanhddconfig = HDDFanConfig
-
-        # Speed based on CPU Temp
-        val = argonsysinfo_getcputemp()
-        newspeed = get_fanspeed(val, fanconfig)
-        # Speed based on HDD Temp
-        val = argonsysinfo_getmaxhddtemp()
-        tmpspeed = get_fanspeed(val, fanhddconfig)
-
-        #print( "CPU wants fan speed of",newspeed)
-        #print( "HDD wants fan speed of", tmpspeed)
-
-        # Use faster fan speed
-        if tmpspeed > newspeed:
-            newspeed = tmpspeed
+        newspeed = max([get_fanspeed(argonsysinfo_getcputemp(), load_config("/etc/argononed.conf",CPUFanConfig))
+                       ,get_fanspeed(argonsysinfo_getmaxhddtemp(), load_config("/etc/argononed-hdd.conf",HDDFanConfig))
+                       ]
+                      )
 
         if newspeed < prevspeed:
             # Pause 30s before speed reduction to prevent fluctuations
@@ -233,12 +222,11 @@ def temp_check():
                     bus.write_byte(ADDR_FAN,100)
                     time.sleep(1)
                 bus.write_byte(ADDR_FAN,newspeed)
-                #print( "Set fan speed to ", newspeed)
-            time.sleep(30)
+                writeSpeed (newspeed)
         except IOError:
-            time.sleep(60)
+            ...
+        time.sleep(60)
         prevspeed = newspeed
-
 #
 # This function is the thread that updates OLED
 #

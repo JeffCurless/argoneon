@@ -7,6 +7,8 @@ import math
 sys.path.append( "/etc/argon/")
 from argonsysinfo import *
 
+from argononed import getCurrentFanSpeed
+
 usage1 = argonsysinfo_diskusage()
 start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
 
@@ -52,6 +54,13 @@ printTable([{"CPU" : d["title"], "%" : d["value"] } for d in argonsysinfo_listcp
           ,['CPU','%']
           ,title = 'CPU Utilisation:'
           )
+
+
+printTable({"Speed %" : getCurrentFanSpeed()}
+          ,['Speed %']
+          ,title = 'Fan Speed'
+          )
+
 #
 # Display Usage
 #
