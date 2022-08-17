@@ -44,7 +44,7 @@ pretty_name=`grep PRETTY_NAME /etc/os-release | awk -F"=" '{print $2}' | sed 's/
 echo ${pretty_name} | grep -q -F Ubuntu
 if [ $? -eq 0 ]
 then
-    version=`echo ${pretty_name} | awk '{print $2}'`
+    version=`echo ${pretty_name} | awk '{print $2}' | awk -F"." '{print $1"."$2}'`
     echo ${version}
     if [ "${version}" == "21.04" ]
     then
@@ -60,6 +60,7 @@ then
         pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
     else
         echo "Unsupported Ubuntu verison: " ${pretty_name}
+	exit
     fi
 else
     echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null
