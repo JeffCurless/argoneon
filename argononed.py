@@ -89,7 +89,11 @@ def shutdown_check(writeq):
 def get_fanspeed(tempval, configlist): 
     retval = 0
     if len(configlist) > 0:
-        retval = configlist[max([k for k in configlist.keys() if tempval >= k])]
+        for k in configlist.keys():
+            if tempval >= k:
+                retval=k
+                break
+        #retval = configlist[max([k for k in configlist.keys() if tempval >= k])]
     return retval
 
 
