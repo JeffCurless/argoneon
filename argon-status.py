@@ -93,7 +93,7 @@ for item in raidlist:
         state = stateArray[2]
     else:
         state = None
-    thisDict = {'Device ' : item['title']
+    thisDict = {'Device'  : item['title']
                ,'Type'    : item['info']['raidtype'].upper()
                ,'Size'    : argonsysinfo_kbstr(item['info']['size'])
                ,'State'   : state.capitalize()
@@ -103,9 +103,13 @@ for item in raidlist:
         rebuildExists = True
         thisDict['Rebuild'] = item['info']['resync']
     lst.append (thisDict)
+
 if rebuildExists:
     keys.append ("Rebuild")
-printTable(lst,keys, title = "RAID Arrays:" )
+
+
+if len(lst) > 0 :
+    printTable(lst,keys, title = "RAID Arrays:" )
 #print( "Drives used in RAID:" )
 #print( hddlist )
 #
