@@ -194,7 +194,7 @@ speed = Path('/tmp/fanspeed.txt')
 
 def getCurrentFanSpeed():
     try:
-        return int(speed.read_text())
+        return int(float(speed.read_text()))
     except FileNotFoundError:
         return None
 
@@ -241,7 +241,7 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
                 # Spin up to prevent issues on older units
                 bus.write_byte(ADDR_FAN,100)
                 time.sleep(1)
-            bus.write_byte(ADDR_FAN,newspeed)
+            bus.write_byte(ADDR_FAN,int(newspeed))
         except IOError:
             return prevspeed
     writeSpeed (newspeed)
