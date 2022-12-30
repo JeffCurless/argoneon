@@ -173,7 +173,9 @@ def argonsysinfo_gethddtemp():
                             command.close()
                         if 'Permission denied' in smartctlOutRaw and not smartCmd.startswith('sudo'):
                             return getSmart(f"sudo {smartCmd}")
-                        
+                        if 'scsi error unsupported scsi opcode' in smartctlOutRaw:
+                            return None
+
                         smartctlOut = [l for l in smartctlOutRaw.split('\n') if l]
 
                         for smartAttr in ["194","190"]:
@@ -185,10 +187,24 @@ def argonsysinfo_gethddtemp():
                             except IndexError:
                                 ## Smart Attr not found
                                 ...
+
+                        for smartAttr in ["Temperature:"]:
+                            try:
+                                line = [l for l in smartctlOut if l.startswith(smartAttr)][0]
+                                parts = [p for p in line.replace('\t',' ').split(' ') if p]
+                                tempval = float(parts[1])
+                                return tempval
+                            except IndexError:
+                                ## Smart attrbute not found
+                                ...
                         return None
-                    theTemp = getSmart(f"{hddtempcmd} -d sat -A /dev/{curdev}")
+                    theTemp = getSmart(f"{hddtempcmd} -d sat -n standby,0 -A /dev/{curdev}")
                     if theTemp:
                         outputobj[curdev] = theTemp
+                    else: 
+                        theTemp = getSmart(f"{hddtempcmd} -n standby,0 -A /dev/{curdev}")
+                        if theTemp:
+                            outputobj[curdev] = theTemp
     return outputobj
 
 def argonsysinfo_getip():
