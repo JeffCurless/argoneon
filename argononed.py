@@ -91,7 +91,7 @@ def get_fanspeed(tempval, configlist):
     if len(configlist) > 0:
         for k in configlist.keys():
             if tempval >= k:
-                retval=k
+                retval=configlist[k]
                 break
         #retval = configlist[max([k for k in configlist.keys() if tempval >= k])]
     return retval
