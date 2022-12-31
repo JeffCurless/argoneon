@@ -92,8 +92,8 @@ def get_fanspeed(tempval, configlist):
         for k in configlist.keys():
             if tempval >= k:
                 retval=configlist[k]
-                break
-        #retval = configlist[max([k for k in configlist.keys() if tempval >= k])]
+                #print( "Temperature is above " + str(tempval) + " suggesting fanspeed of " + str(retval) )
+    #print( "Returning fanspeed of " + str(retval))
     return retval
 
 
@@ -241,6 +241,7 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
                 # Spin up to prevent issues on older units
                 bus.write_byte(ADDR_FAN,100)
                 time.sleep(1)
+            #print( "Setting fanspeed to " + str(newspeed) )
             bus.write_byte(ADDR_FAN,int(newspeed))
         except IOError:
             return prevspeed
