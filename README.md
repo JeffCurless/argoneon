@@ -47,3 +47,29 @@ If for some reason you don't like the changes, run argon-config and uninstall.  
 ```
 curl http://download.argon40.com/argoneon.sh | bash
 ```
+
+## argon-status
+
+```
+usage: argon-status [-h] [-v] [-a] [-c] [-d] [-f] [-i] [-m] [-r] [-s] [-t] [-u] [--hddtemp]
+
+optional arguments:
+  -h, --help     show this help message and exit
+  -v, --version  Display the version of the argon scripts.
+  -a, --all      Display full status of the Argon EON.
+  -c, --cpu      Display the current CPU utilization.
+  -d, --devices  Display informaton about devices in the EON.
+  -f, --fan      Get current fan speed.
+  -i, --ip       Display currently configured IP addresses.
+  -m, --memory   Display memory utilization on the EON.
+  -r, --raid     Display current state of the raid Array if it exists.
+  -s, --storage  Display information about the storage system.
+  -t, --temp     Display information about the current temperature.
+  -u, --hdduse   Display disk utilization.
+  --hddtemp      Display the temperature of the storage devices.
+```
+
+When used with no arguments, argon-status will display as if argon-status --devices --ip was used.  If you do not wish to have this as a default, set the ARGON_STATUS_DEFAULT to what you wish the default to be, such as 
+```
+export ARGON_STATUS_DEFAULT="-t --hddtemp -f"
+```
