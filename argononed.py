@@ -27,7 +27,6 @@ import RPi.GPIO as GPIO
 from pathlib import Path
 import sys
 import os
-import logging
 import time
 
 from threading import Thread
@@ -35,6 +34,7 @@ from queue import Queue
 
 sys.path.append("/etc/argon/")
 from argonsysinfo import *
+from argonlogging import *
 from argonconfig import *
 
 # Initialize I2C Bus
@@ -57,16 +57,10 @@ if os.path.exists("/etc/argon/argoneonoled.py"):
     from argoneonoled import *
     OLED_ENABLED=True
 
-if loadDebugMode():
-    logging.basicConfig(filename="/var/log/argononed.log",
-                        filemode='a',
-                        level=logging.DEBUG,
-                        format='%(asctime)s %(process)d [%(levelname)s]-%(message)s')
-else:
-    logging.basicConfig(filename="/var/log/argononed.log",
-                        level=logging.INFO,
-                        format='%(asctime)s %(process)d [%(levelname)s]-%(message)s')
-
+#
+# Enable debug logging if requested
+#
+enableLogging( loadDebugMode() )
 
 ADDR_FAN=0x1a
 PIN_SHUTDOWN=4
@@ -74,7 +68,6 @@ PIN_SHUTDOWN=4
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIN_SHUTDOWN, GPIO.IN,  pull_up_down=GPIO.PUD_DOWN)
-
 
 # This function is the thread that monitors activity in our shutdown pin
 # The pulse width is measured, and the corresponding shell command will be issued
@@ -98,17 +91,21 @@ def shutdown_check(writeq):
         elif pulsetime >=6 and pulsetime <=7:
             writeq.put("OLEDSWITCH")
 
-# This function converts the corresponding fanspeed for the given temperature
-# The configuration data is a list of strings in the form "<temperature>=<speed>"
-
-def get_fanspeed(tempval, configlist): 
+#
+#
+#
+def get_fanspeed(tempval, configlist):
+    """
+    This function converts the corresponding fanspeed for the given temperature the
+    configutation data is a list of strings in the form "<temperature>:<speed>"
+    """
     retval = 0
     if len(configlist) > 0:
         for k in configlist.keys():
             if tempval >= float(k):
                 retval=int(configlist[k])
-                logging.debug( "Temperature (" + str(tempval) + ") >= " + str(k) + " suggesting fanspeed of " + str(retval) )
-    logging.debug( "Returning fanspeed of " + str(retval))
+                logDebug( "Temperature (" + str(tempval) + ") >= " + str(k) + " suggesting fanspeed of " + str(retval) )
+    logDebug( "Returning fanspeed of " + str(retval))
     return retval
 
 
@@ -126,9 +123,11 @@ def setFanFlatOut ():
     setFanSpeed (overrideSpeed = 100)
 
 def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
-
-    CPUFanConfig = {65.0:100, 60.0:55, 55.0: 30}
-    HDDFanConfig = {50.0:100, 40.0:55, 30.0: 30}
+    """
+    Set the fanspeed.  Support override (overrideSpeed) with a specific value, and 
+    an instantaneous change.  Some hardware does not like the sudden change, it wants the
+    speed set to 100% THEN changed to the new value.  Not really sure why this is.
+    """
     prevspeed    = argonsysinfo_getCurrentFanSpeed()
     if not prevspeed:
         prevspeed = 0
@@ -144,11 +143,10 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
         if newspeed < prevspeed and not instantaneous:
             # Pause 30s before speed reduction to prevent fluctuations
             time.sleep(30)
+
+
     # Make sure the value is in 0-100 range
-    newspeed = max([min([100,newspeed])
-                   ,0
-                   ]
-                  )
+    newspeed = max([min([100,newspeed]),0])
     if  prevspeed != newspeed:
         try:
             if newspeed > 0:

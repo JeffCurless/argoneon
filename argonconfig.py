@@ -25,6 +25,9 @@ def setOLEDDefaults(config):
 
 #
 def setGeneralDefaults(config):
+    """
+    Setup the defaults for the General section of the configuration file.
+    """
     if not 'General' in config.keys():
         config['General'] = {'temperature' : 'C'}
 
@@ -42,8 +45,12 @@ def loadConfigAndDefaults():
     configuration file, and if we need to we could actually write out the config if the file does 
     not exist.
     """
-    config = configparser.ConfigParser()
-    config.read( CONFIG_FILE )
+
+    try:
+        config = configparser.ConfigParser()
+        config.read( CONFIG_FILE )
+    except Exception as e:
+        logError( "Error processing configuration file " + CONFIG_FILE + "exception is " + e )
 
     #
     # Setup defaults for anything that is missing
@@ -51,11 +58,11 @@ def loadConfigAndDefaults():
     setGeneralDefaults( config )
     setOLEDDefaults( config )
     if not 'CPUFan' in config.keys():
-        config['CPUFan'] = {'65.0':'100', '60.0':'55', '55.0':'30' }
+        config['CPUFan'] = {'55.0':'30', '60.0':'55', '65.0':'100'}
     if not 'HDDFan' in config.keys():
-        config['HDDFan'] = {'60.0':'100', '54.0':'60', '52.0':'55',
-                            '50.0':'50',  '48.0':'40', '46.0':'35',
-                            '44.0':'30',  '40.0':'25'}
+        config['HDDFan'] = {'40.0':'25', '44.0':'30', '46.0':'35',
+                            '48.0':'40', '50.0':'45', '50.0':'50',
+                            '52.0':'55', '54.0':'60', '60.0':'100'}
  
     if not os.path.exists( CONFIG_FILE ):
         with open( CONFIG_FILE, 'w' ) as configfile:
@@ -83,15 +90,25 @@ def loadHDDFanConfig():
 
 #
 def loadOLEDConfig():
+    """
+    Obtain the OLED configuration info, and return it.
+    """
     config = loadConfigAndDefaults()['OLED']
     return config;
 
 #
 def loadTempConfig():
+    """
+    Return the value we are supposed to be using for temperature, either Celcius, or Fahrenheit.
+    """
     return loadConfigAndDefaults()['General']['temperature']
 
 #
 def loadDebugMode():
+    """
+    Return the value of the debugging setting.  'Y' is used to enable debug, Anything else is
+    no debugging
+    """
     if loadConfigAndDefaults()['General']['debug'] == 'Y':
         return True
     return False
