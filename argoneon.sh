@@ -5,7 +5,7 @@ echo " Argon Setup  "
 echo "*************"
 
 # Helper variables
-ARGONDOWNLOADSERVER=https://raw.githubusercontent.com/JeffCurless/argoneon/main/
+ARGONDOWNLOADSERVER=https://raw.githubusercontent.com/JeffCurless/argoneon/single_config_file/
 INSTALLATIONFOLDER=/etc/argon
 
 versioninfoscript=$INSTALLATIONFOLDER/argon-versioninfo.sh
@@ -99,6 +99,7 @@ daemonname=$basename"d"
 irconfigscript=$INSTALLATIONFOLDER/${basename}-ir
 fanconfigscript=$INSTALLATIONFOLDER/${basename}-fanconfig.sh
 powerbuttonscript=$INSTALLATIONFOLDER/$daemonname.py
+argoneonconfig=$INSTALLATIONFOLDER/argoneon.conf
 unitconfigfile=/etc/argonunits.conf
 daemonconfigfile=/etc/$daemonname.conf
 daemonfanservice=/lib/systemd/system/$daemonname.service
@@ -124,45 +125,10 @@ sudo curl -L $ARGONDOWNLOADSERVER/argon-versioninfo.sh -o $versioninfoscript --s
 sudo chmod 755 $versioninfoscript
 
 sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py --silent
-
-sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argonconfig.py -o $INSTALLATIONFOLDER/argonconfig.py --silent
 
 sudo curl -L $ARGONDOWNLOADSERVER/argon-unitconfig.sh -o $unitconfigscript --silent
 sudo chmod 755 $unitconfigscript
-
-# Generate default Fan config file if non-existent
-if [ ! -f $daemonconfigfile ]; then
-    sudo touch $daemonconfigfile
-    sudo chmod 666 $daemonconfigfile
-
-    echo '#' >> $daemonconfigfile
-    echo '# Argon Fan Speed Configuration (CPU)' >> $daemonconfigfile
-    echo '#' >> $daemonconfigfile
-    echo '55=30' >> $daemonconfigfile
-    echo '60=55' >> $daemonconfigfile
-    echo '65=100' >> $daemonconfigfile
-fi
-
-if [ ! -f $daemonhddconfigfile ]; then
-    sudo touch $daemonhddconfigfile
-    sudo chmod 666 $daemonhddconfigfile
-
-    echo '#' >> $daemonhddconfigfile
-    echo '# Argon Fan Speed Configuration (HDD)' >> $daemonhddconfigfile
-    echo '#' >> $daemonhddconfigfile
-    echo '35=30' >> $daemonhddconfigfile
-    echo '40=55' >> $daemonhddconfigfile
-    echo '45=100' >> $daemonhddconfigfile
-fi
-
-# Generate default Unit config file if non-existent
-if [ ! -f $unitconfigfile ]; then
-    sudo touch $unitconfigfile
-    sudo chmod 666 $unitconfigfile
-
-    echo '#' >> $unitconfigfile
-fi
-
 
 # RTC Setup
 basename="argoneon"
@@ -186,18 +152,6 @@ if [ ! -f $rtcconfigfile ]; then
     echo '# Argon RTC Configuration' >> $rtcconfigfile
     echo '#' >> $rtcconfigfile
 fi
-# Generate default OLED config file if non-existent
-if [ ! -f $oledconfigfile ]; then
-    sudo touch $oledconfigfile
-    sudo chmod 666 $oledconfigfile
-
-    echo '#' >> $oledconfigfile
-    echo '# Argon OLED Configuration' >> $oledconfigfile
-    echo '#' >> $oledconfigfile
-    echo 'switchduration=30' >> $oledconfigfile
-    echo 'screenlist="clock cpu storage bandwidth raid ram temp ip"' >> $oledconfigfile
-fi
-
 
 # RTC Config Script
 sudo curl -L $ARGONDOWNLOADSERVER/argoneon-rtcconfig.sh -o $rtcconfigscript --silent

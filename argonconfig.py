@@ -1,8 +1,9 @@
 ﻿#
 # Configuration processing code
 #
-
+import os
 import configparser
+CONFIG_FILE='/etc/argoneon.conf'
 
 #
 def setOLEDDefaults(config):
