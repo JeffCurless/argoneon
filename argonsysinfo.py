@@ -223,11 +223,11 @@ def argonsysinfo_gethddtemp():
                                 ## Smart attrbute not found
                                 ...
                         return None
-                    theTemp = getSmart(f"sudo {hddtempcmd} -d sat -n standby,0 -A /dev/{curdev}")
+                    theTemp = getSmart(f"{hddtempcmd} -d sat -n standby,0 -A /dev/{curdev}")
                     if theTemp:
                         outputobj[curdev] = theTemp
                     else: 
-                        theTemp = getSmart(f"sudo {hddtempcmd} -n standby,0 -A /dev/{curdev}")
+                        theTemp = getSmart(f"{hddtempcmd} -n standby,0 -A /dev/{curdev}")
                         if theTemp:
                             outputobj[curdev] = theTemp
     return outputobj
@@ -416,7 +416,7 @@ def argonsysinfo_getraiddetail(devname):
     spare = 0
     resync = ""
     hddlist =[]
-    command = os.popen('sudo mdadm -D /dev/'+devname)
+    command = os.popen('mdadm -D /dev/'+devname)
     tmp = command.read()
     command.close()
     alllines = tmp.split("\n")

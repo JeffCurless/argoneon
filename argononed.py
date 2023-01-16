@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+﻿#!/usr/bin/python3
 
 #
 # This script set fan speed and monitor power button events.
@@ -28,11 +28,15 @@ from pathlib import Path
 import sys
 import os
 import time
+
 from threading import Thread
 from queue import Queue
 
 sys.path.append("/etc/argon/")
 from argonsysinfo import *
+from argonlogging import *
+from argonconfig import *
+
 # Initialize I2C Bus
 import smbus
 
@@ -42,16 +46,21 @@ if rev == 2 or rev == 3:
 else:
     bus=smbus.SMBus(0)
 
-
+CONFIG_FILE='/etc/argoneon.conf'
 OLED_ENABLED=False
 
+#
+# Enable logging
+#
 if os.path.exists("/etc/argon/argoneonoled.py"):
     import datetime
     from argoneonoled import *
     OLED_ENABLED=True
 
-OLED_CONFIGFILE = "/etc/argoneonoled.conf"
-UNIT_CONFIGFILE = "/etc/argonunits.conf"
+#
+# Enable debug logging if requested
+#
+enableLogging( loadDebugMode() )
 
 ADDR_FAN=0x1a
 PIN_SHUTDOWN=4
@@ -59,7 +68,6 @@ PIN_SHUTDOWN=4
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIN_SHUTDOWN, GPIO.IN,  pull_up_down=GPIO.PUD_DOWN)
-
 
 # This function is the thread that monitors activity in our shutdown pin
 # The pulse width is measured, and the corresponding shell command will be issued
@@ -83,105 +91,23 @@ def shutdown_check(writeq):
         elif pulsetime >=6 and pulsetime <=7:
             writeq.put("OLEDSWITCH")
 
-# This function converts the corresponding fanspeed for the given temperature
-# The configuration data is a list of strings in the form "<temperature>=<speed>"
-
-def get_fanspeed(tempval, configlist): 
+#
+#
+#
+def get_fanspeed(tempval, configlist):
+    """
+    This function converts the corresponding fanspeed for the given temperature the
+    configutation data is a list of strings in the form "<temperature>:<speed>"
+    """
     retval = 0
     if len(configlist) > 0:
         for k in configlist.keys():
-            if tempval >= k:
-                retval=configlist[k]
-                #print( "Temperature is above " + str(tempval) + " suggesting fanspeed of " + str(retval) )
-    #print( "Returning fanspeed of " + str(retval))
+            if tempval >= float(k):
+                retval=int(configlist[k])
+                logDebug( "Temperature (" + str(tempval) + ") >= " + str(k) + " suggesting fanspeed of " + str(retval) )
+    logDebug( "Returning fanspeed of " + str(retval))
     return retval
 
-
-# This function retrieves the fanspeed configuration list from a file, arranged by temperature
-# It ignores lines beginning with "#" and checks if the line is a valid temperature-speed pair
-# The temperature values are formatted to uniform length, so the lines can be sorted properly
-
-def load_config(fname, defaults):
-    file = Path(fname)
-    newconfig = {}
-    if file.is_file():
-        lines = [f.strip() for f in file.read_text().split('\n') if f and not f.strip(' ').startswith('#')]
-        for tmpline in lines:
-            tmppair = tmpline.split("=")
-            if len(tmppair) != 2:
-                continue
-            tempval = 0
-            fanval = 0
-            try:
-                tempval = float(tmppair[0])
-                if tempval < 0 or tempval > 100:
-                    continue
-            except:
-                continue
-            try:
-                fanval = int(float(tmppair[1]))
-                if fanval < 0 or fanval > 100:
-                    continue
-            except:
-                continue
-            newconfig[tempval] = fanval
-    
-    if len(newconfig) == 0:
-        newconfig = defaults
-        
-    return newconfig
-
-# Load OLED Config file
-def load_oledconfig(fname):
-    output={}
-    screenduration=-1
-    screenlist=[]
-    try:
-        with open(fname, "r") as fp:
-            for curline in fp:
-                if not curline:
-                    continue
-                tmpline = curline.strip()
-                if not tmpline:
-                    continue
-                if tmpline[0] == "#":
-                    continue
-                tmppair = tmpline.split("=")
-                if len(tmppair) != 2:
-                    continue
-                if tmppair[0] == "switchduration":
-                    output['screenduration']=int(tmppair[1])
-                elif tmppair[0] == "screensaver":
-                    output['screensaver']=int(tmppair[1])
-                elif tmppair[0] == "screenlist":
-                    output['screenlist']=tmppair[1].replace("\"", "").split(" ")
-                elif tmppair[0] == "enabled":
-                    output['enabled']=tmppair[1].replace("\"", "")
-    except:
-        return {}
-    return output
-
-# Load Unit Config file
-def load_unitconfig(fname):
-    output={"temperature": "C"}
-    try:
-        with open(fname, "r") as fp:
-            for curline in fp:
-                if not curline:
-                    continue
-                tmpline = curline.strip()
-                if not tmpline:
-                    continue
-                if tmpline[0] == "#":
-                    continue
-                tmppair = tmpline.split("=")
-                if len(tmppair) != 2:
-                    continue
-                if tmppair[0] == "temperature":
-                    output['temperature']=tmppair[1].replace("\"", "")
-    except:
-        return {}
-    return output
 
 # This function is the thread that monitors temperature and sets the fan speed
 # The value is fed to get_fanspeed to get the new fan speed
@@ -197,9 +123,11 @@ def setFanFlatOut ():
     setFanSpeed (overrideSpeed = 100)
 
 def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
-
-    CPUFanConfig = {65.0:100, 60.0:55, 55.0: 30}
-    HDDFanConfig = {50.0:100, 40.0:55, 30.0: 30}
+    """
+    Set the fanspeed.  Support override (overrideSpeed) with a specific value, and 
+    an instantaneous change.  Some hardware does not like the sudden change, it wants the
+    speed set to 100% THEN changed to the new value.  Not really sure why this is.
+    """
     prevspeed    = argonsysinfo_getCurrentFanSpeed()
     if not prevspeed:
         prevspeed = 0
@@ -208,18 +136,17 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
     if overrideSpeed is not None:
         newspeed = overrideSpeed
     else:
-        newspeed = max([get_fanspeed(argonsysinfo_getcputemp(), load_config("/etc/argononed.conf",CPUFanConfig))
-                       ,get_fanspeed(argonsysinfo_getmaxhddtemp(), load_config("/etc/argononed-hdd.conf",HDDFanConfig))
+        newspeed = max([get_fanspeed(argonsysinfo_getcputemp(), loadCPUFanConfig())
+                       ,get_fanspeed(argonsysinfo_getmaxhddtemp(), loadHDDFanConfig())
                        ]
                       )
         if newspeed < prevspeed and not instantaneous:
             # Pause 30s before speed reduction to prevent fluctuations
             time.sleep(30)
+
+
     # Make sure the value is in 0-100 range
-    newspeed = max([min([100,newspeed])
-                   ,0
-                   ]
-                  )
+    newspeed = max([min([100,newspeed]),0])
     if  prevspeed != newspeed:
         try:
             if newspeed > 0:
@@ -227,9 +154,10 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
                 bus.write_byte(ADDR_FAN,100)
                 time.sleep(1)
             bus.write_byte(ADDR_FAN,int(newspeed))
+            logging.debug( "writing to fan port, speed " + str(newspeed))
+            argonsysinfo_recordCurrentFanSpeed( newspeed )
         except IOError:
             return prevspeed
-    argonsysinfo_recordCurrentFanSpeed( newspeed )
     return newspeed
 
 def temp_check():
@@ -249,10 +177,9 @@ def display_loop(readq):
     stdleftoffset = 54
 
     temperature="C"
-    tmpconfig=load_unitconfig(UNIT_CONFIGFILE)
-    if "temperature" in tmpconfig:
-        temperature = tmpconfig["temperature"]
+    temperature = loadTempConfig()
 
+    print( "Temperature config is " + temperature )
     screensavermode = False
     screensaversec = 120
     screensaverctr = 0
@@ -262,18 +189,18 @@ def display_loop(readq):
     curscreen = ""
     screenid = 0
     screenjogtime = 0
-    screenjogflag = 0    # start with screenid 0
+    screenjogflag = 0  # start with screenid 0
     cpuusagelist = []
     curlist = []
 
-    tmpconfig=load_oledconfig(OLED_CONFIGFILE)
+    tmpconfig=loadOLEDConfig()  
 
     if "screensaver" in tmpconfig:
-        screensaversec = tmpconfig["screensaver"]
+        screensaversec = int(tmpconfig["screensaver"])
     if "screenduration" in tmpconfig:
-        screenjogtime = tmpconfig["screenduration"]
+        screenjogtime = int(tmpconfig["screenduration"])
     if "screenlist" in tmpconfig:
-        screenenabled = tmpconfig["screenlist"]
+        screenenabled = tmpconfig["screenlist"].replace("\"","").split(" ")
 
     if "enabled" in tmpconfig:
         if tmpconfig["enabled"] == "N":
@@ -299,6 +226,7 @@ def display_loop(readq):
         prevscreen = curscreen
         curscreen = screenenabled[screenid]
 
+        print( curscreen )
         if screenjogtime == 0:
             # Resets jogflag (if switched manually)
             screenjogflag = 0
