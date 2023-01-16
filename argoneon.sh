@@ -96,28 +96,20 @@ fi
 # Fan Setup
 basename="argonone"
 daemonname=$basename"d"
-irconfigscript=$INSTALLATIONFOLDER/${basename}-ir
-fanconfigscript=$INSTALLATIONFOLDER/${basename}-fanconfig.sh
+irconfigscript=$INSTALLATIONFOLDER/${basename}-ir.sh
 powerbuttonscript=$INSTALLATIONFOLDER/$daemonname.py
 argoneonconfig=$INSTALLATIONFOLDER/argoneon.conf
-unitconfigfile=/etc/argonunits.conf
 daemonconfigfile=/etc/$daemonname.conf
 daemonfanservice=/lib/systemd/system/$daemonname.service
 
-daemonhddconfigfile=/etc/${daemonname}-hdd.conf
-
-# Fan Config Script
-sudo curl -L $ARGONDOWNLOADSERVER/argonone-fanconfig.sh -o $fanconfigscript --silent
-sudo chmod 755 $fanconfigscript
-
-
 # Fan Daemon/Service Files
 sudo curl -L $ARGONDOWNLOADSERVER/argononed.py -o $powerbuttonscript --silent
+sudo chmod 644 $powerbuttonscript
 sudo curl -L $ARGONDOWNLOADSERVER/argononed.service -o $daemonfanservice --silent
 sudo chmod 644 $daemonfanservice
 
 # IR Files
-sudo curl -L $ARGONDOWNLOADSERVER/argonone-irconfig.sh -o $irconfigscript --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argonone-ir.sh -o $irconfigscript --silent
 sudo chmod 755 $irconfigscript
 
 # Other utility scripts
@@ -125,11 +117,11 @@ sudo curl -L $ARGONDOWNLOADSERVER/argon-versioninfo.sh -o $versioninfoscript --s
 sudo chmod 755 $versioninfoscript
 
 sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py --silent
+sudo chmod 755 $INSTALLATIONFOLDER/argonsysinfo.py
 sudo curl -L $ARGONDOWNLOADSERVER/argonconfig.py -o $INSTALLATIONFOLDER/argonconfig.py --silent
+sudo chmod 755 $INSTALLATIONFOLDER/argonconfig.py
 sudo curl -L $ARGONDOWNLOADSERVER/argonlogging.py -o $INSTALLATIONFOLDER/argonlogging.py --silent
-
-sudo curl -L $ARGONDOWNLOADSERVER/argon-unitconfig.sh -o $unitconfigscript --silent
-sudo chmod 755 $unitconfigscript
+sudo chmod 755 $INSTALLATIONFOLDER/argonlogging.py
 
 # RTC Setup
 basename="argoneon"
@@ -140,7 +132,6 @@ rtcconfigscript=$INSTALLATIONFOLDER/${basename}-rtcconfig.sh
 daemonrtcservice=/lib/systemd/system/$daemonname.service
 rtcdaemonscript=$INSTALLATIONFOLDER/$daemonname.py
 
-oledconfigscript=$INSTALLATIONFOLDER/${basename}-oledconfig.sh
 oledlibscript=$INSTALLATIONFOLDER/${basename}oled.py
 oledconfigfile=/etc/argoneonoled.conf
 
@@ -160,14 +151,11 @@ sudo chmod 755 $rtcconfigscript
 
 # RTC Daemon/Service Files
 sudo curl -L $ARGONDOWNLOADSERVER/argoneond.py -o $rtcdaemonscript --silent
+sudo chmod 644 $rtcdaemonscript 
 sudo curl -L $ARGONDOWNLOADSERVER/argoneond.service -o $daemonrtcservice --silent
-sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript --silent
 sudo chmod 644 $daemonrtcservice
-
-# OLED Config Script
-sudo curl -L $ARGONDOWNLOADSERVER/argoneon-oledconfig.sh -o $oledconfigscript --silent 
-sudo chmod 755 $oledconfigscript
-
+sudo curl -L $ARGONDOWNLOADSERVER/argoneonoled.py -o $oledlibscript --silent
+sudo chmod 755 $oledlibscript
 
 if [ ! -d $INSTALLATIONFOLDER/oled ]
 then
@@ -244,24 +232,12 @@ echo 'while [ $mainloopflag -eq 1 ]' >> $configscript
 echo 'do' >> $configscript
 echo '    echo' >> $configscript
 echo '    echo "Choose Option:"' >> $configscript
-echo '    echo "  1. Configure Fan"' >> $configscript
-echo '    echo "  2. Configure IR"' >> $configscript
-
-uninstalloption="4"
-
-# ArgonEON Has RTC
-echo '    echo "  3. Configure RTC and/or Schedule"' >> $configscript
-echo '    echo "  4. Configure OLED"' >> $configscript
-uninstalloption="6"
-
-
-unitsoption=$(($uninstalloption-1))
-echo "    echo \"  $unitsoption. Configure Units\"" >> $configscript
-
-echo "    echo \"  $uninstalloption. Uninstall\"" >> $configscript
+echo '    echo "  1. Configure IR"' >> $configscript
+echo '    echo "  2. Configure RTC and/or Schedule"' >> $configscript
+echo '    echo "  3. Uninstall"' >> $configscript
 echo '    echo ""' >> $configscript
 echo '    echo "  0. Exit"' >> $configscript
-echo "    echo -n \"Enter Number (0-$uninstalloption):\"" >> $configscript
+echo '    echo -n "Enter Number (0-3):"' >> $configscript
 echo '    newmode=$( get_number )' >> $configscript
 
 
@@ -269,47 +245,18 @@ echo '    if [ $newmode -eq 0 ]' >> $configscript
 echo '    then' >> $configscript
 echo '        echo "Thank you."' >> $configscript
 echo '        mainloopflag=0' >> $configscript
+
 echo '    elif [ $newmode -eq 1 ]' >> $configscript
-echo '    then' >> $configscript
-
-echo '        echo "Choose Triggers:"' >> $configscript
-echo '        echo "  1. CPU Temperature"' >> $configscript
-echo '        echo "  2. HDD Temperature"' >> $configscript
-echo '        echo ""' >> $configscript
-echo '        echo "  0. Cancel"' >> $configscript
-echo "        echo -n \"Enter Number (0-2):\"" >> $configscript
-echo '        submode=$( get_number )' >> $configscript
-
-echo '        if [ $submode -eq 1 ]' >> $configscript
-echo '        then' >> $configscript
-echo "            $fanconfigscript" >> $configscript
-echo '            mainloopflag=0' >> $configscript
-echo '        elif [ $submode -eq 2 ]' >> $configscript
-echo '        then' >> $configscript
-echo "            $fanconfigscript hdd" >> $configscript
-echo '            mainloopflag=0' >> $configscript
-echo '        fi' >> $configscript
-
-echo '    elif [ $newmode -eq 2 ]' >> $configscript
 echo '    then' >> $configscript
 echo "        $irconfigscript" >> $configscript
 echo '        mainloopflag=0' >> $configscript
 
-echo '    elif [ $newmode -eq 3 ]' >> $configscript
+echo '    elif [ $newmode -eq 2 ]' >> $configscript
 echo '    then' >> $configscript
 echo "        $rtcconfigscript" >> $configscript
 echo '        mainloopflag=0' >> $configscript
-echo '    elif [ $newmode -eq 4 ]' >> $configscript
-echo '    then' >> $configscript
-echo "        $oledconfigscript" >> $configscript
-echo '        mainloopflag=0' >> $configscript
 
-echo "    elif [ \$newmode -eq $unitsoption ]" >> $configscript
-echo '    then' >> $configscript
-echo "        $unitconfigscript" >> $configscript
-echo '        mainloopflag=0' >> $configscript
-
-echo "    elif [ \$newmode -eq $uninstalloption ]" >> $configscript
+echo '    elif [ $newmode -eq 3 ]' >> $configscript
 echo '    then' >> $configscript
 echo "        $uninstallscript" >> $configscript
 echo '        mainloopflag=0' >> $configscript

@@ -1,8 +1,8 @@
 import logging
 
 LOGGING_FILE ='/var/log/argoneon.log'
-FORMAT_STRING='%(asctime)s %(process)d [%(levelname)s]-%(message)s'
-
+FORMAT_STRING='%(asctime)s %(process)d [%(levelname)s] %(message)s'
+DATE_FORMAT='%b %d %y %H:%M:%S'
 #
 #
 #
@@ -11,12 +11,14 @@ def enableLogging( enableDebug : bool = False ):
         logging.basicConfig( filename=LOGGING_FILE,
                              filemode='a',
                              level=logging.DEBUG,
-                             format=FORMAT_STRING)
+                             format=FORMAT_STRING,
+                             datefmt=DATE_FORMAT)
     else:
         logging.basicConfig( filename=LOGGING_FILE,
                              filemode='a',
                              level=logging.INFO,
-                             format=FORMAT_STRING)
+                             format=FORMAT_STRING,
+                             datefmt=DATE_FORMAT)
 
 #
 #
