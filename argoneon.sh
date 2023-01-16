@@ -126,7 +126,7 @@ sudo chmod 755 $versioninfoscript
 
 sudo curl -L $ARGONDOWNLOADSERVER/argonsysinfo.py -o $INSTALLATIONFOLDER/argonsysinfo.py --silent
 sudo curl -L $ARGONDOWNLOADSERVER/argonconfig.py -o $INSTALLATIONFOLDER/argonconfig.py --silent
-sudo curl -L $ARGONDOWNLOADSERVER/argonlogging.py -o $INSTALLATIONFOLDER/argonconfig.py --silent
+sudo curl -L $ARGONDOWNLOADSERVER/argonlogging.py -o $INSTALLATIONFOLDER/argonlogging.py --silent
 
 sudo curl -L $ARGONDOWNLOADSERVER/argon-unitconfig.sh -o $unitconfigscript --silent
 sudo chmod 755 $unitconfigscript

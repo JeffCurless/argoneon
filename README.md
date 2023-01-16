@@ -73,3 +73,38 @@ When used with no arguments, argon-status will display as if argon-status --devi
 ```
 export ARGON_STATUS_DEFAULT="-t --hddtemp -f"
 ```
+
+## argoneon.conf
+
+Modified the code to support one main configuration file.  All the other files, with the exception of the rtc configuration file have been moved into /etc/argoneon.conf.  If this file does not exist the code will generate a new version when the argononed.service starts.  All defaults will be set, including a better (well, I think it is) set of default fan settings.
+
+Default ConfigFile:
+```
+[General]
+temperature = C
+debug = N
+
+[OLED]
+screenduration = 30
+screensaver = 120
+screenlist = clock cpu storage bandwidth raid ram temp ip
+enabled = Y
+
+[CPUFan]
+55.0 = 30
+60.0 = 55
+65.0 = 100
+
+[HDDFan]
+40.0 = 25
+44.0 = 30
+46.0 = 35
+48.0 = 40
+50.0 = 50
+52.0 = 55
+54.0 = 60
+60.0 = 100
+```
+
+Setting debug = Y in the General section enables debug tracking of the fan settings in the file /var/log/argoneon.log.  This is a good mechanism to determine if the fan setting are actually working.  If you have issues with fan settings, please enable the logging, restart the service and send me the log output after 10 minutes or so.
+
