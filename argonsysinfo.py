@@ -8,6 +8,31 @@ import os
 import time
 import socket
 import psutil
+from pathlib import Path
+
+fanspeed = Path('/tmp/fanspeed.txt')
+
+#
+def argonsysinfo_getCurrentFanSpeed():
+    """ Get the current fanspeed of the system, by reading a file we have stored the speed in.
+    This allows other applications for determine what the current fan speed is, as we cannot read
+    (apparently) from the device when we set the speed.
+    """
+    try:
+        return int(float(fanspeed.read_text()))
+    except FileNotFoundError:
+        return None
+    except ValueError:
+        return None
+
+#
+def argonsysinfo_recordCurrentFanSpeed( theSpeed ):
+    """ Record the current fanspeed for external applications to use.
+    """
+    try:
+        fanspeed.write_text(str(theSpeed))
+    except:
+        ...
 
 def argonsysinfo_listcpuusage(sleepsec = 1):
     outputlist = []
@@ -198,11 +223,11 @@ def argonsysinfo_gethddtemp():
                                 ## Smart attrbute not found
                                 ...
                         return None
-                    theTemp = getSmart(f"{hddtempcmd} -d sat -n standby,0 -A /dev/{curdev}")
+                    theTemp = getSmart(f"sudo {hddtempcmd} -d sat -n standby,0 -A /dev/{curdev}")
                     if theTemp:
                         outputobj[curdev] = theTemp
                     else: 
-                        theTemp = getSmart(f"{hddtempcmd} -n standby,0 -A /dev/{curdev}")
+                        theTemp = getSmart(f"sudo {hddtempcmd} -n standby,0 -A /dev/{curdev}")
                         if theTemp:
                             outputobj[curdev] = theTemp
     return outputobj
@@ -391,7 +416,7 @@ def argonsysinfo_getraiddetail(devname):
     spare = 0
     resync = ""
     hddlist =[]
-    command = os.popen('mdadm -D /dev/'+devname)
+    command = os.popen('sudo mdadm -D /dev/'+devname)
     tmp = command.read()
     command.close()
     alllines = tmp.split("\n")
@@ -471,3 +496,21 @@ def argonsysinfo_diskusage():
         usage.append( temp )
 
     return usage
+
+def argonsysinfo_truncateFloat( value, dp ):
+    """ make sure the value passed in has no more decimal places than the
+    passed in (dp) number of places.
+    """
+    value *= pow( 10, dp )
+    value = round( value )
+    value /= pow( 10, dp )
+    return value
+
+def argonsysinfo_convertCtoF( rawTemp, dp ):
+    """ Convert a raw temperature in degrees C to degrees F, and make sure the
+    value is truncated to the specified number of decimal places
+    """
+    rawTemp = (32 + (rawTemp * 9)/5)
+    rawTemp = argonsysinfo_truncateFloat( rawTemp, dp )
+    return rawTemp;
+

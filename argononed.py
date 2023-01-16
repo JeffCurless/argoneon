@@ -190,14 +190,6 @@ def load_unitconfig(fname):
 # Location of config file varies based on OS
 #
 
-speed = Path('/tmp/fanspeed.txt')
-
-def getCurrentFanSpeed():
-    try:
-        return int(float(speed.read_text()))
-    except FileNotFoundError:
-        return None
-
 def setFanOff ():
     setFanSpeed (overrideSpeed = 0)
 
@@ -208,17 +200,10 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
 
     CPUFanConfig = {65.0:100, 60.0:55, 55.0: 30}
     HDDFanConfig = {50.0:100, 40.0:55, 30.0: 30}
-
-    def writeSpeed(theSpeed):
-        try:
-            speed.write_text(str(theSpeed))
-        except:
-            ...
-
-    prevspeed    = getCurrentFanSpeed()
+    prevspeed    = argonsysinfo_getCurrentFanSpeed()
     if not prevspeed:
         prevspeed = 0
-        writeSpeed (prevspeed)
+        argonsysinfo_recordCurrentFanSpeed( prevspeed )
     
     if overrideSpeed is not None:
         newspeed = overrideSpeed
@@ -241,11 +226,10 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
                 # Spin up to prevent issues on older units
                 bus.write_byte(ADDR_FAN,100)
                 time.sleep(1)
-            #print( "Setting fanspeed to " + str(newspeed) )
             bus.write_byte(ADDR_FAN,int(newspeed))
         except IOError:
             return prevspeed
-    writeSpeed (newspeed)
+    argonsysinfo_recordCurrentFanSpeed( newspeed )
     return newspeed
 
 def temp_check():
@@ -662,7 +646,7 @@ if len(sys.argv) > 1:
 
     elif cmd == "FANOFF":
         # Turn off fan
-        bus.write_byte(ADDR_FAN,0)
+        setFanOff()
         if OLED_ENABLED == True:
             display_defaultimg()
 
@@ -683,3 +667,7 @@ if len(sys.argv) > 1:
             ipcq.join()
         except:
             GPIO.cleanup()
+
+    elif cmd == "VERSION":
+        print( "Version: 2023.01.15")
+
