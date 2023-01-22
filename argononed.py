@@ -36,6 +36,7 @@ sys.path.append("/etc/argon/")
 from argonsysinfo import *
 from argonlogging import *
 from argonconfig import *
+from version import *
 
 # Initialize I2C Bus
 import smbus
@@ -144,10 +145,9 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
             # Pause 30s before speed reduction to prevent fluctuations
             time.sleep(30)
 
-
     # Make sure the value is in 0-100 range
     newspeed = max([min([100,newspeed]),0])
-    if  prevspeed != newspeed:
+    if overrideSpeed is not None or (prevspeed != newspeed):
         try:
             if newspeed > 0:
                 # Spin up to prevent issues on older units
@@ -157,10 +157,16 @@ def setFanSpeed (overrideSpeed : int = None, instantaneous : bool = True):
             logging.debug( "writing to fan port, speed " + str(newspeed))
             argonsysinfo_recordCurrentFanSpeed( newspeed )
         except IOError:
+            logError( "Error trying o update fan speed.")
             return prevspeed
     return newspeed
 
 def temp_check():
+    """
+    Main thread for processing the temperature check functonality.  We just try and set the fan speed once
+    a minute.  However we do want to start with the fan *OFF*.
+    """
+    setFanOff()
     while True:
         setFanSpeed (instantaneous = False)
         time.sleep(60)
@@ -242,6 +248,7 @@ def display_loop(readq):
                         cpuusagelist = argonsysinfo_listcpuusage()
                     curlist = cpuusagelist
                 except:
+                    logError( "Error processing information for CPU display")
                     curlist = []
             if len(curlist) > 0:
                 oled_loadbg("bgcpu")
@@ -271,6 +278,7 @@ def display_loop(readq):
                         curlist.append({"title": curdev, "value": argonsysinfo_kbstr(tmpobj[curdev]['total']), "usage": int(tmpobj[curdev]['percent']) })
                     #curlist = argonsysinfo_liststoragetotal()
                 except:
+                    logError( "Error processing information for STORAGE display")
                     curlist = []
             if len(curlist) > 0:
                 oled_loadbg("bgstorage")
@@ -310,6 +318,7 @@ def display_loop(readq):
                     timespan = (stoptime - prevTime)/1000000000
                     prevTime  = stoptime
                 except:
+                    logError( "Error processing data for BANDWIDTH display")
                     curlist = []
             if len(curlist) > 0:
 
@@ -343,6 +352,7 @@ def display_loop(readq):
                     tmpobj = argonsysinfo_listraid()
                     curlist = tmpobj['raidlist']
                 except:
+                    logError( "Error processing display of RAID information.")
                     curlist = []
             if len(curlist) > 0:
                 oled_loadbg("bgraid")
@@ -385,6 +395,7 @@ def display_loop(readq):
                 oled_writetextaligned(tmpraminfo[1], stdleftoffset, 40, oledscreenwidth-stdleftoffset, 1, fontwdReg)
                 needsUpdate = True
             except:
+                logError( "Error processing information for RAM display")
                 needsUpdate = False
                 # Next page due to error/no data
                 screenjogflag = 1
@@ -460,6 +471,7 @@ def display_loop(readq):
 
                 needsUpdate = True
             except:
+                logError( "Error processing temerature information for TEMP display" )
                 needsUpdate = False
                 # Next page due to error/no data
                 screenjogflag = 1
@@ -469,6 +481,7 @@ def display_loop(readq):
                 if len(curlist) == 0:
                     curlist = argonsysinfo_getipList()
             except:
+                logError( "Error processing information for IP display")
                 curlist = []
 
             if len(curlist) > 0:
@@ -508,6 +521,7 @@ def display_loop(readq):
 
                 needsUpdate = True
             except:
+                logError( "Error processing information of TIME display" )
                 needsUpdate = False
                 # Next page due to error/no data
                 screenjogflag = 1
@@ -570,17 +584,21 @@ if len(sys.argv) > 1:
     cmd = sys.argv[1].upper()
     if cmd == "SHUTDOWN":
         # Signal poweroff
+        logInfo( "SHUTDOWN requested via shutdown of command of argononed service")
+        setFanOff()
         bus.write_byte(ADDR_FAN,0xFF)
-
+        
     elif cmd == "FANOFF":
         # Turn off fan
         setFanOff()
+        logInfo( "FANOFF requested via fanoff command of the argononed service")
         if OLED_ENABLED == True:
             display_defaultimg()
 
     elif cmd == "SERVICE":
         # Starts the power button and temperature monitor threads
         try:
+            logInfo( "argononed service version " + ARGON_VERSION + " starting.")
             ipcq = Queue()
             t1 = Thread(target = shutdown_check, args =(ipcq, ))
 
@@ -597,5 +615,5 @@ if len(sys.argv) > 1:
             GPIO.cleanup()
 
     elif cmd == "VERSION":
-        print( "Version: 2023.01.15")
+        print( "Version: " + ARGON_VERSION )
 

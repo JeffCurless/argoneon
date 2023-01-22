@@ -12,6 +12,14 @@ from pathlib import Path
 
 fanspeed = Path('/tmp/fanspeed.txt')
 
+def checkPermission():
+    """
+    Determine if the user can properly execute the script.  Must have sudo or be root
+    """
+    if not ('SUDO_UID' in os.environ ) and os.geteuid() != 0:
+        return False
+    return True
+
 #
 def argonsysinfo_getCurrentFanSpeed():
     """ Get the current fanspeed of the system, by reading a file we have stored the speed in.
@@ -189,6 +197,8 @@ def argonsysinfo_gethddtemp():
                 if curdev[0:2] == "sd" or curdev[0:2] == "hd":
                     # command = os.popen(hddtempcmd+" -d sat -A /dev/"+curdev+" | grep 194 | awk '{print $10}' 2>&1")
                     def getSmart(smartCmd):
+                        if not checkPermission() and not smartCmd.startswith("sudo"):
+                            smartCmd = "sudo " + smartCmd
                         try:
                             command = os.popen(smartCmd)
                             smartctlOutRaw = command.read()
@@ -196,8 +206,6 @@ def argonsysinfo_gethddtemp():
                             print (e)
                         finally:
                             command.close()
-                        if 'Permission denied' in smartctlOutRaw and not smartCmd.startswith('sudo'):
-                            return getSmart(f"sudo {smartCmd}")
                         if 'scsi error unsupported scsi opcode' in smartctlOutRaw:
                             return None
 
@@ -416,7 +424,10 @@ def argonsysinfo_getraiddetail(devname):
     spare = 0
     resync = ""
     hddlist =[]
-    command = os.popen('mdadm -D /dev/'+devname)
+    if not checkPermission():
+        command = os.popen('sudo mdadm -D /dev/'+devname)
+    else:
+        command = os.popen('mdadm -D /dev/'+devname)
     tmp = command.read()
     command.close()
     alllines = tmp.split("\n")

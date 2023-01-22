@@ -122,6 +122,8 @@ sudo curl -L $ARGONDOWNLOADSERVER/argonconfig.py -o $INSTALLATIONFOLDER/argoncon
 sudo chmod 755 $INSTALLATIONFOLDER/argonconfig.py
 sudo curl -L $ARGONDOWNLOADSERVER/argonlogging.py -o $INSTALLATIONFOLDER/argonlogging.py --silent
 sudo chmod 755 $INSTALLATIONFOLDER/argonlogging.py
+sudo curl -L $ARGONDOWNLOADSERVER/version.py -o $INSTALLATIONFOLDER/version.py --silent
+sudo chmod 755 $INSTALLATIONFOLDER/version.py
 
 # RTC Setup
 basename="argoneon"
