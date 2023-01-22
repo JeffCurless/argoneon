@@ -2,11 +2,13 @@
 
 import sys
 import os
+import subprocess
 import time
 import math
 sys.path.append( "/etc/argon/" )
 from argonsysinfo import *
-
+from argonconfig import *
+from version import *
 import argparse
 
 #
@@ -174,6 +176,9 @@ def show_hddutilization():
     printTable(lst, title = 'Storage Utilization:' )
 #
 def show_all():
+    """ 
+    Display all options that we care about
+    """
     show_storage()
     show_raid()
     show_hddTemperature()
@@ -184,15 +189,24 @@ def show_all():
     show_memory()
 
 def show_memory():
+    """
+    Display currnent memory utilization
+    """
     memory = argonsysinfo_getram()
     printTable({"Total":memory[1],"Free":memory[0]},title="Memory:")
 
 #
 def print_version():
-    print( 'Currently running version 2023.01.15-01')
+    """ 
+    Display the version of we are currently running
+    """
+    print( 'Currently running version: ' + ARGON_VERSION )
 
 #
 def setup_arguments():
+    """
+    Setup all of the arguments that we recoginize.  
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument( '-v', '--version', action='store_true', help='Display the version of the argon scripts.')
     parser.add_argument( '-a', '--all',     action='store_true', help='Display full status of the Argon EON.')
@@ -206,14 +220,64 @@ def setup_arguments():
     parser.add_argument( '-t', '--temp',    action='store_true', help='Display information about the current temperature.')
     parser.add_argument( '-u', '--hdduse',  action='store_true', help='Display disk utilization.')
     parser.add_argument( '--hddtemp',       action='store_true', help='Display the temperature of the storage devices.')
+    parser.add_argument( '--cooling',       action='store_true', help='Display cooling information about the EON.')
     return parser
 
+def show_config():
+    """
+    Create a table of the HDD and CPU temperatures, and then add in all of the marked fan
+    speeds for the given temps.  We also highlight the thing that is forcing the current fanspeed.
+    """
+    hddtemplst = loadHDDFanConfig()
+    cputemplst = loadCPUFanConfig()
+  
+    actualcpu = argonsysinfo_getcputemp()
+    actualhdd = argonsysinfo_getmaxhddtemp()
+    fanspeed  = argonsysinfo_getCurrentFanSpeed()
+    keys = {}
+    hdd = {'Temperature':'HDD fanspeed'}
+    cpu = {'Temperature':'CPU fanspeed'}
+    for i in hddtemplst.keys():
+        keys.__setitem__( i, '' )
+
+    for i in cputemplst.keys():
+        keys.__setitem__( i, '' )
+
+    for i in sorted(keys.keys()):
+        if i in hddtemplst.keys():
+            if float(actualhdd) >= float(i) and (int(hddtemplst[i]) == int(fanspeed)):
+                hdd.__setitem__( i, '<' + hddtemplst[i] + '>' )
+            else:
+                hdd.__setitem__(i,hddtemplst[i] )
+        else:
+            hdd.__setitem__( i, '' )
+        if i in cputemplst.keys():
+            if (float(actualcpu) >= float(i)) and (int(cputemplst[i]) == int(fanspeed)):
+                cpu.__setitem__( i, "<" + cputemplst[i] + ">" )
+            else:
+                cpu.__setitem__( i, cputemplst[i] )
+        else:
+            cpu.__setitem__( i, '' )
+
+    lst = []
+    lst.append( hdd )
+    lst.append( cpu )
+    printTable( lst, title="Temperature Settings Table:" )
 #
+def check_permission():
+    """
+    Determine if the user can properly execute the script.  Must have sudo or be root
+    """
+    if not ('SUDO_UID' in os.environ ) and os.geteuid() != 0:
+        return False
+    return True
 
-start = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
-usage1= argonsysinfo_diskusage()
-
+#
 def main():
+    """
+    Process all command line options here.  This is where we modify the default settings based on the evironment
+    variable AGON_STATUS_DEFAULT.  If there are any flags that cannot be used together, filter them out here.
+    """
     parser = setup_arguments()
     if len(sys.argv) > 1:
         args = parser.parse_args()
@@ -249,7 +313,11 @@ def main():
         show_hddutilization()
     if args.all:
         show_all()
+    if args.cooling:
+        show_cpuTemperature()
+        show_hddTemperature()
+        show_fanspeed()
+        show_config()
     
 if __name__ == "__main__":
-    setup_arguments()
     main()
