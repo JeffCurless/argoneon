@@ -30,21 +30,28 @@ fi
 
 
 argon_check_pkg() {
-    RESULT=$(dpkg-query -W -f='${Status}\n' "$1" 2> /dev/null | grep "installed")
-
-    if [ "" == "$RESULT" ]; then
-        echo "NG"
+    if [ "$CHECKPLATFORM" = "Manjaro" ]; then
+        RESULT=$(pacman -Q "$1" 2> /dev/null)
+        if [ $? == 0 ]; then
+            echo "OK"
+        else
+            echo "NG"
+        fi
     else
-        echo "OK"
+        RESULT=$(dpkg-query -W -f='${Status}\n' "$1" 2> /dev/null | grep "installed")
+        if [ "" == "$RESULT" ]; then
+            echo "NG"
+        else
+            echo "OK"
+        fi
     fi
 }
 
 CHECKPLATFORM="Others"
-pretty_name=`grep PRETTY_NAME /etc/os-release | awk -F"=" '{print $2}' | sed 's/"//g'`
-echo ${pretty_name} | grep -q -F Ubuntu
-if [ $? -eq 0 ]
+pretty_name=$(grep PRETTY_NAME /etc/os-release | awk -F"=" '{print $2}' | sed 's/"//g')
+if $(echo ${pretty_name} | grep -q -F Ubuntu); [ $? -eq 0 ]
 then
-    version=`echo ${pretty_name} | awk '{print $2}' | awk -F"." '{print $1"."$2}'`
+    version=$(echo ${pretty_name} | awk '{print $2}' | awk -F"." '{print $1"."$2}')
     echo ${version}
     if [ "${version}" == "21.04" ]
     then
@@ -60,29 +67,49 @@ then
         pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
     else
         echo "Unsupported Ubuntu verison: " ${pretty_name}
-	exit
+        exit
     fi
-else
-    echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null
-    if [ $? -eq 0 ]
-    then
+elif $(echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null); [ $? -eq 0 ]
+then
         echo "Installing on RaspberryPI OS"
         pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
         CHECKPLATFORM="Raspbian"
-    fi
+elif $(echo ${pretty_name} | grep 'Manjaro' &>/dev/null); [ $? -eq 0 ]
+then
+        pacman_pkglist=(i2c-tools python-pip base-devel yay smartmontools)
+        aur_pkglist=(raspi-gpio-git)
+        python_pkglist="smbus rpi-gpio psutil"
+        CHECKPLATFORM="Manjaro"        
 fi
 
-for curpkg in ${pkglist[@]}; do
-    sudo apt-get install -y $curpkg
-    RESULT=$(argon_check_pkg "$curpkg")
-    if [ "NG" == "$RESULT" ]
-    then
-        echo "********************************************************************"
-        echo "Please also connect device to the internet and restart installation."
-        echo "********************************************************************"
-        exit
-    fi
-done
+if [ "$CHECKPLATFORM" = "Manjaro" ]
+then
+    for curpkg in ${pacman_pkglist[@]}; do
+        sudo pacman -S --needed --noconfirm $curpkg
+        RESULT=$(argon_check_pkg "$curpkg")
+        if [ "NG" == "$RESULT" ]
+        then
+            echo "********************************************************************"
+            echo "Please also connect device to the internet and restart installation."
+            echo "********************************************************************"
+            exit 1
+        fi
+    done
+    sudo python3 -m pip install $python_pkglist
+    yay -S --noconfirm $aur_pkglist
+else
+    for curpkg in ${pkglist[@]}; do
+        sudo apt-get install -y $curpkg
+        RESULT=$(argon_check_pkg "$curpkg")
+        if [ "NG" == "$RESULT" ]
+        then
+            echo "********************************************************************"
+            echo "Please also connect device to the internet and restart installation."
+            echo "********************************************************************"
+            exit
+        fi
+    done
+fi
 
 # Ubuntu Mate for RPi has raspi-config too
 command -v raspi-config &> /dev/null
@@ -268,7 +295,7 @@ echo 'done' >> $configscript
 sudo chmod 755 $configscript
 
 # Desktop Icon
-currentuser=`whoami`
+currentuser=$(whoami)
 shortcutfile="/home/${currentuser}/Desktop/argonone-config.desktop"
 if [ "$CHECKPLATFORM" = "Raspbian" ] && [ -d "/home/${currentuser}/Desktop" ]
 then
