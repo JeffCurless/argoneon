@@ -7,6 +7,7 @@ Currently supports 32 and 64 bit versions of Raspberry PI OS, as well as:
 
 - Ubuntu 21.04, 21.10 and 22.04
 - DietPi 64 bit Bullseye based.  Make sure you have enabled I2C, and have rebooted the system.
+- Manjaro Linux support has been added.
 
 ## Differences from Argon40's Scripts
 
