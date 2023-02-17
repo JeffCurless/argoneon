@@ -11,7 +11,7 @@ from argonsysinfo import *
 from argonconfig import *
 from version import *
 import argparse
-
+from collections import ChainMap
 
 #
 def prepareJSON(data):
@@ -27,11 +27,10 @@ def prepareJSON(data):
     json_dict[title] = values
     return json_dict
 
-
 #
 def printJSON(data):
 
-    if args.all != True:
+    if args.all and args.cooling != True:
         data = prepareJSON(data)
 
     print(json.dumps(data, indent=4), end = '')
@@ -141,7 +140,6 @@ def show_raid():
     else:
         print( "No RAID Arrays configured!" )
 
-
 #
 def show_cpuUtilization():
     """
@@ -248,24 +246,12 @@ def show_hddutilization():
 
 
 #
-def show_all():
+def show_all(show_list):
     """ 
     Display all options that we care about
     """
-
-    show_all_list = [
-        "storage",
-        "raid",
-        "hddTemperature",
-        "cpuUtilization",
-        "cpuTemperature",
-        "ipaddresses",
-        "fanspeed",
-        "memory"
-        ]
-
     all_list = {}
-    for show in show_all_list:
+    for show in show_list:
         result = globals()[f'show_{show}']()
         if args.json:
             result = prepareJSON(result)
@@ -289,14 +275,12 @@ def show_memory():
     result['values'] = [{"Total GB":memory['gb'],"Free percent":memory['percent']}]
     return result
 
-
 #
 def print_version():
     """ 
     Display the version of we are currently running
     """
     print( 'Currently running version: ' + ARGON_VERSION )
-
 
 #
 def setup_arguments():
@@ -319,7 +303,6 @@ def setup_arguments():
     parser.add_argument( '--hddtemp',       action='store_true', help='Display the temperature of the storage devices.')
     parser.add_argument( '--cooling',       action='store_true', help='Display cooling information about the EON.')
     return parser
-
 
 def show_config():
     """
@@ -366,7 +349,6 @@ def show_config():
     result['values'] = values
     return result
 
-
 #
 def check_permission():
     """
@@ -375,7 +357,6 @@ def check_permission():
     if not ('SUDO_UID' in os.environ ) and os.geteuid() != 0:
         return False
     return True
-
 
 #
 def main():
@@ -429,16 +410,26 @@ def main():
         result = show_hddutilization()
         printOutput(result)
     if args.all:
-        show_all()
+        show_all_list = [
+            "storage",
+            "raid",
+            "hddTemperature",
+            "cpuUtilization",
+            "cpuTemperature",
+            "ipaddresses",
+            "fanspeed",
+            "memory"
+            ]
+        show_all(show_all_list)
     if args.cooling:
-        result = show_cpuTemperature()
-        printOutput(result)
-        result = show_hddTemperature()
-        printOutput(result)
-        result = show_fanspeed()
-        printOutput(result)
-        result = show_config()
-        printOutput(result)
+        show_cooling_list = [
+            "cpuTemperature",
+            "hddTemperature",
+            "fanspeed",
+            "config"
+            ]
+        show_all(show_cooling_list)
+
 
 if __name__ == "__main__":
     main()
