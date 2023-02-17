@@ -30,7 +30,7 @@ def prepareJSON(data):
 #
 def printJSON(data):
 
-    if args.all and args.cooling != True:
+    if (args.all != True) and (args.cooling != True):
         data = prepareJSON(data)
 
     print(json.dumps(data, indent=4), end = '')
