@@ -5,62 +5,99 @@ import os
 import subprocess
 import time
 import math
+import json
 sys.path.append( "/etc/argon/" )
 from argonsysinfo import *
 from argonconfig import *
 from version import *
 import argparse
 
+
 #
-def printTable(myDict, colList=None, title : str = None ):
+def prepareJSON(data):
+
+    values = data.get('values', None)
+    title = data.get('title', None)
+    json_dict={}
+
+    title = title.lower()
+    title = title.replace(':','')
+    title = title.replace(' ', '_' )
+
+    json_dict[title] = values
+    return json_dict
+
+
+#
+def printJSON(data):
+
+    if args.all != True:
+        data = prepareJSON(data)
+
+    print(json.dumps(data, indent=4), end = '')
+
+
+#
+def printTable(data):
     """ Pretty print a list of dictionarys (myDict) as a dynamically sized table.
-    If column names (colList) aren't specified, they will show in random order.
+    If column names (headers) aren't specified, they will show in random order.
     Author: Therry Husson - Use it as you want but don't blame me.
     """
-    if isinstance(myDict, dict):
-        myDict = [myDict]
+    title = data.get('title', None)
+    headers = data.get('headers', None)
+    values = data.get('values', None)
 
     if title:
         print( f"\n{title}")
 
-    if not colList: colList = list(myDict[0].keys() if myDict else [])
-    myList = [colList] # 1st row = header
-    for item in myDict: myList.append([str(item[col] if item[col] is not None else '') for col in colList])
-    colSize = [max(map(len,col)) for col in zip(*myList)]
-    colSep = ' | '
-    fullWidth = sum(colSize)+((len(colSize)-1)*len(colSep))
-    formatStr = colSep.join(["{{:<{}}}".format(i) for i in colSize])
-    myList.insert(1,['-' * i for i in colSize]) # Separating line
-    print('-'*fullWidth)
-    for item in myList: print( formatStr.format(*item))
+    if headers:
+        for head in headers:
+            print(f'{head: <14}', end='')
+        print()
+    else:
+        for _key, item in values[0].items():
+            print(f'{_key: <14}', end='')
+        print()
 
-    def centre( string ):
-        strLen = len(string)
-        if strLen < fullWidth:
-            padLen = int((fullWidth-strLen)/2)
-            if padLen > 0:
-                string = string.rjust(strLen+padLen)
-        print( string )
+    for value in values:
+        for _key, item in value.items():
+            print(f'{str(item): <14}', end='')
+        print()
 
-    if len(myDict) == 0:
-        centre("* No data to display *")
-    print( '-'*fullWidth)
+    return
+
+
+#
+def printOutput(data):
+    if args.json == True:
+        printJSON(data)
+    else:
+        printTable(data)
+
 
 #
 def show_storage():
     """ Display the storage devices in the system.  These not, devices involved
     in a RAID array are NOT displayed, however the RAID device is.
     """
+    temp_result = {}
+    result = {}
     devices = argonsysinfo_listhddusage()
-    lst = []
+    values = []
     for dev in devices:
-        lst.append( {"Device": dev
+        values.append( {"Device": dev
                     ,"Total": argonsysinfo_kbstr(devices[dev]['total'])
                     ,"Used": argonsysinfo_kbstr(devices[dev]['used'])
-                    ,"Pct": f"{devices[dev]['percent']}%"
+                    ,"Percent": f"{devices[dev]['percent']}"
                     }
                   )
-    printTable( lst, ["Device","Total","Used","Pct"], title="Storage Usage:")
+
+
+    result['values'] = values
+    result['headers'] = ["Device","Total","Used","Percent"]
+    result['title'] = 'Storage Usage:'
+    return result
+
 
 #
 def show_raid():
@@ -69,7 +106,7 @@ def show_raid():
     no RAID setup, inform the user.
     """
     raidList = argonsysinfo_listraid()['raidlist']
-    lst = []
+    values = []
     rebuildExists = False
     keys = ['Device', 'Type', 'Size', 'State' ]
     for item in raidList:
@@ -91,15 +128,19 @@ def show_raid():
         if len(item['info']['resync']) > 0:
             rebuildExists = True
             raidDict['Rebuild'] = item['info']['resync']
-        lst.append( raidDict )
+        values.append( raidDict )
 
     if rebuildExists:
         keys.append("Rebuild")
 
-    if len(lst) > 0:
-        printTable(lst,keys,title="RAID Arrays:" )
+    if len(values) > 0:
+        result = {}
+        result['title'] = "RAID Arrays:"
+        result['values'] = values
+        return result
     else:
         print( "No RAID Arrays configured!" )
+
 
 #
 def show_cpuUtilization():
@@ -107,8 +148,14 @@ def show_cpuUtilization():
     Display the current CPU utilization. Not all that helpful as it is simply a 
     snapshot, and tools such as htop etc work much better.
     """
-    lst = [{'CPU': d['title'], "%": d["value"]} for d in argonsysinfo_listcpuusage()]
-    printTable( lst, ['CPU','%'], title = 'CPU Utilization')
+    values = [{'CPU': d['title'], "%": d["value"]} for d in argonsysinfo_listcpuusage()]
+
+    result = {}
+    result['title'] = 'CPU Utilization:'
+    result['headers'] = ['CPU','%']
+    result['values'] = values
+    return result
+
 
 #
 def show_cpuTemperature():
@@ -118,7 +165,12 @@ def show_cpuTemperature():
     rawTemp = argonsysinfo_getcputemp()
     ctemp   = argonsysinfo_truncateFloat(rawTemp,2)
     ftemp   = argonsysinfo_convertCtoF(rawTemp,2)
-    printTable({"C":ctemp,"F":ftemp},title="CPU Temperature:")
+
+    result = {}
+    result['title'] = 'CPU Temperature:'
+    result['values'] = [{"C":ctemp,"F":ftemp}]
+    return result
+
 
 #
 def show_ipaddresses():
@@ -126,8 +178,12 @@ def show_ipaddresses():
     Display a list of all Network interfaces configured with IP addresses, with the
     exception of any bridge types setup for containers
     """
-    lst = [{"Interface":item[0],'IP':item[1]} for item in argonsysinfo_getipList()]
-    printTable(lst,title="IP Addresses:")
+    values = [{"interface": item[0], 'ip':item[1]} for item in argonsysinfo_getipList()]
+    result = {}
+    result['title'] = 'IP Addresses:'
+    result['values'] = values
+    return result
+
 
 #
 def show_hddTemperature():
@@ -137,21 +193,32 @@ def show_hddTemperature():
     fan triggers
     """
     hddTemp = argonsysinfo_gethddtemp()
-    lst = []
+    values = []
     for item in hddTemp:
         rawTemp = hddTemp[item]
         ctemp   = argonsysinfo_truncateFloat(rawTemp,1)
         ftemp   = argonsysinfo_convertCtoF(rawTemp,1)
-        lst.append( {'Device':item, "C":ctemp, "F":ftemp})
-    printTable( lst, title="Storage Temperature:")
+        values.append( {'device':item, "C":ctemp, "F":ftemp})
+
+    result = {}
+    result['title'] = 'Storage Temperature:'
+    result['values'] = values
+    return result
+
 
 #
 def show_fanspeed():
     """
     Display the current fan speed percentage.
     """
-    printTable({"Speed %" : argonsysinfo_getCurrentFanSpeed()},['Speed %'],title='Fan Speed')
+    result = {}
+    result['title'] = 'Fan Speed:'
+    result['headers'] = ['percent']
+    result['values'] = [{"percent" : argonsysinfo_getCurrentFanSpeed()}]
+    return result
 
+
+#
 def show_hddutilization():
     """
     Display the current disk device utilization, this is basically useless, use dstat.
@@ -168,32 +235,60 @@ def show_hddutilization():
                 istart['readsector']  = istop['readsector'] - istart['readsector']
                 istart['writesector'] = istop['writesector'] - istart['writesector']
     span = ((stop - start)/1000000000)
-    lst = []
+    values = []
     for item in usage1:
         readbw = (item['readsector']/2)/span
         writebw = (item['writesector']/2)/span
-        lst.append({'Device':item['disk'], "Read/Sec":argonsysinfo_kbstr(int(readbw)),"Write/Sec":argonsysinfo_kbstr(int(writebw))})
-    printTable(lst, title = 'Storage Utilization:' )
+        values.append({'Device':item['disk'], "Read/Sec":argonsysinfo_kbstr(int(readbw)),"Write/Sec":argonsysinfo_kbstr(int(writebw))})
+
+    result = {}
+    result['title'] = 'Storage Utilization:'
+    result['values'] = values
+    return result
+
+
 #
 def show_all():
     """ 
     Display all options that we care about
     """
-    show_storage()
-    show_raid()
-    show_hddTemperature()
-    show_cpuUtilization()
-    show_cpuTemperature()
-    show_ipaddresses()
-    show_fanspeed()
-    show_memory()
 
+    show_all_list = [
+        "storage",
+        "raid",
+        "hddTemperature",
+        "cpuUtilization",
+        "cpuTemperature",
+        "ipaddresses",
+        "fanspeed",
+        "memory"
+        ]
+
+    all_list = {}
+    for show in show_all_list:
+        result = globals()[f'show_{show}']()
+        if args.json:
+            result = prepareJSON(result)
+            all_list = {**all_list, **result}
+        else:
+            printOutput(result)
+
+    if args.json:
+        printOutput(all_list)
+
+
+#
 def show_memory():
     """
     Display currnent memory utilization
     """
     memory = argonsysinfo_getram()
-    printTable({"Total":memory[1],"Free":memory[0]},title="Memory:")
+
+    result = {}
+    result['title'] = 'Memory:'
+    result['values'] = [{"Total GB":memory['gb'],"Free percent":memory['percent']}]
+    return result
+
 
 #
 def print_version():
@@ -201,6 +296,7 @@ def print_version():
     Display the version of we are currently running
     """
     print( 'Currently running version: ' + ARGON_VERSION )
+
 
 #
 def setup_arguments():
@@ -214,6 +310,7 @@ def setup_arguments():
     parser.add_argument( '-d', '--devices', action='store_true', help='Display informaton about devices in the EON.')
     parser.add_argument( '-f', '--fan',     action='store_true', help='Get current fan speed.')
     parser.add_argument( '-i', '--ip',      action='store_true', help='Display currently configured IP addresses.')
+    parser.add_argument( '-j', '--json',    action='store_true', help='Display output in json format')
     parser.add_argument( '-m', '--memory',  action='store_true', help='Display memory utilization on the EON.')
     parser.add_argument( '-r', '--raid',    action='store_true', help='Display current state of the raid Array if it exists.')
     parser.add_argument( '-s', '--storage', action='store_true', help='Display information about the storage system.')
@@ -223,13 +320,14 @@ def setup_arguments():
     parser.add_argument( '--cooling',       action='store_true', help='Display cooling information about the EON.')
     return parser
 
+
 def show_config():
     """
     Create a table of the HDD and CPU temperatures, and then add in all of the marked fan
     speeds for the given temps.  We also highlight the thing that is forcing the current fanspeed.
     """
-    hddtemplst = loadHDDFanConfig()
-    cputemplst = loadCPUFanConfig()
+    hddtempvalues = loadHDDFanConfig()
+    cputempvalues = loadCPUFanConfig()
   
     actualcpu = argonsysinfo_getcputemp()
     actualhdd = argonsysinfo_getmaxhddtemp()
@@ -237,32 +335,38 @@ def show_config():
     keys = {}
     hdd = {'Temperature':'HDD fanspeed'}
     cpu = {'Temperature':'CPU fanspeed'}
-    for i in hddtemplst.keys():
+    for i in hddtempvalues.keys():
         keys.__setitem__( i, '' )
 
-    for i in cputemplst.keys():
+    for i in cputempvalues.keys():
         keys.__setitem__( i, '' )
 
     for i in sorted(keys.keys()):
-        if i in hddtemplst.keys():
-            if float(actualhdd) >= float(i) and (int(hddtemplst[i]) == int(fanspeed)):
-                hdd.__setitem__( i, '<' + hddtemplst[i] + '>' )
+        if i in hddtempvalues.keys():
+            if float(actualhdd) >= float(i) and (int(hddtempvalues[i]) == int(fanspeed)):
+                hdd.__setitem__( i, '<' + hddtempvalues[i] + '>' )
             else:
-                hdd.__setitem__(i,hddtemplst[i] )
+                hdd.__setitem__(i,hddtempvalues[i] )
         else:
             hdd.__setitem__( i, '' )
-        if i in cputemplst.keys():
-            if (float(actualcpu) >= float(i)) and (int(cputemplst[i]) == int(fanspeed)):
-                cpu.__setitem__( i, "<" + cputemplst[i] + ">" )
+        if i in cputempvalues.keys():
+            if (float(actualcpu) >= float(i)) and (int(cputempvalues[i]) == int(fanspeed)):
+                cpu.__setitem__( i, "<" + cputempvalues[i] + ">" )
             else:
-                cpu.__setitem__( i, cputemplst[i] )
+                cpu.__setitem__( i, cputempvalues[i] )
         else:
             cpu.__setitem__( i, '' )
 
-    lst = []
-    lst.append( hdd )
-    lst.append( cpu )
-    printTable( lst, title="Temperature Settings Table:" )
+    values = []
+    values.append( hdd )
+    values.append( cpu )
+
+    result = {}
+    result['title'] = 'Temperature Settings Table:'
+    result['values'] = values
+    return result
+
+
 #
 def check_permission():
     """
@@ -272,12 +376,16 @@ def check_permission():
         return False
     return True
 
+
 #
 def main():
     """
     Process all command line options here.  This is where we modify the default settings based on the evironment
     variable AGON_STATUS_DEFAULT.  If there are any flags that cannot be used together, filter them out here.
     """
+    global args
+    global parser
+
     parser = setup_arguments()
     if len(sys.argv) > 1:
         args = parser.parse_args()
@@ -290,34 +398,47 @@ def main():
     if args.version :
         print_version()
     if args.cpu:
-        show_cpuUtilization()
+        result = show_cpuUtilization()
+        printOutput(result)
     if args.devices:
         show_hddTemperature()
         show_storage()
         show_raid()
     if args.fan:
-        show_fanspeed()
+        result = show_fanspeed()
+        printOutput(result)
     if args.raid :
-        show_raid()
+        result = show_raid()
+        printOutput(result)
     if args.storage :
-        show_storage()
+        result = show_storage()
+        printOutput(result)
     if args.temp :
-        show_cpuTemperature()
+        result = show_cpuTemperature()
+        printOutput(result)
     if args.hddtemp:
-        show_hddTemperature()
+        result = show_hddTemperature()
+        printOutput(result)
     if args.ip:
-        show_ipaddresses()
+        result = show_ipaddresses()
+        printOutput(result)
     if args.memory:
-        show_memory()
+        result = show_memory()
+        printOutput(result)
     if args.hdduse:
-        show_hddutilization()
+        result = show_hddutilization()
+        printOutput(result)
     if args.all:
         show_all()
     if args.cooling:
-        show_cpuTemperature()
-        show_hddTemperature()
-        show_fanspeed()
-        show_config()
-    
+        result = show_cpuTemperature()
+        printOutput(result)
+        result = show_hddTemperature()
+        printOutput(result)
+        result = show_fanspeed()
+        printOutput(result)
+        result = show_config()
+        printOutput(result)
+
 if __name__ == "__main__":
     main()
