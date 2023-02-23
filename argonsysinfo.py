@@ -158,8 +158,8 @@ def argonsysinfo_getram():
             elif infolist[0] == "Cached:":
                 totalfree = totalfree + int(infolist[1])
     if totalram == 0:
-        return "0%"
-    return [str(int(100*totalfree/totalram))+"%", str((totalram+512*1024)>>20)+"GB"]
+        return {'percent': '0', 'gb': '0'}
+    return {'percent': str(int(100*totalfree/totalram)), 'gb': str((totalram+512*1024)>>20)}
 
 
 def argonsysinfo_getmaxhddtemp():
@@ -345,7 +345,6 @@ def argonsysinfo_listhddusage():
             outputobj[curdev]["used"]         += int(infolist[2])
             outputobj[curdev]["total"]        += int(infolist[1])
             outputobj[curdev]["percent"]      += int(percent)
-
     return outputobj
 
 def argonsysinfo_kbstr(kbval, wholenumbers = True):
@@ -409,7 +408,7 @@ def argonsysinfo_listraid():
         # No raid
         errorflag = True
 
-    return {"raidlist": outputlist, "hddlist": hddlist}
+    return {'raidlist': outputlist, 'hddlist': hddlist}
 
 
 def argonsysinfo_getraiddetail(devname):
@@ -471,7 +470,7 @@ def argonsysinfo_getraiddetail(devname):
             infolist = temp.split(" ")
             if len(infolist) == 7:
                 hddlist.append(infolist[6])
-    return {"state": state, "raidtype": raidtype, "size": int(size), "used": int(used), "devices": int(total), "active": int(active), "working": int(working), "failed": int(failed), "spare": int(spare), "resync": resync, "hddlist":hddlist}
+    return {'state': state, 'raidtype': raidtype, 'size': int(size), 'used': int(used), 'devices': int(total), 'active': int(active), 'working': int(working), 'failed': int(failed), 'spare': int(spare), 'resync': resync, 'hddlist':hddlist}
 
 def argonsysinfo_diskusagedetail( disk,mapper : str = None ):
     readsector = 0
@@ -494,7 +493,7 @@ def argonsysinfo_diskusagedetail( disk,mapper : str = None ):
         readsector = data[2]
         writesector = data[6]
 
-    return {"disk":disk, "readsector":int(readsector), "writesector":int(writesector)}
+    return {'disk':disk, 'readsector':int(readsector), 'writesector':int(writesector)}
 
 def argonsysinfo_diskusage():
     usage = []
@@ -505,7 +504,6 @@ def argonsysinfo_diskusage():
             parms["mapper"] = hddlist[disk]["mapper"]
         temp = argonsysinfo_diskusagedetail( **parms )
         usage.append( temp )
-
     return usage
 
 def argonsysinfo_truncateFloat( value, dp ):
