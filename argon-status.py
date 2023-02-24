@@ -382,9 +382,11 @@ def main():
         result = show_cpuUtilization()
         printOutput(result)
     if args.devices:
-        show_hddTemperature()
-        show_storage()
-        show_raid()
+        show_devices_list = [
+            "hddTemperature",
+            "storage",
+            "raid"]
+        show_all( show_devices_list )
     if args.fan:
         result = show_fanspeed()
         printOutput(result)
