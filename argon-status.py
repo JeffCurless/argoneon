@@ -42,6 +42,10 @@ def printTable(data):
     If column names (headers) aren't specified, they will show in random order.
     Author: Therry Husson - Use it as you want but don't blame me.
     """
+
+    if data == None:
+        return
+
     title = data.get('title', None)
     headers = data.get('headers', None)
     values = data.get('values', None)
@@ -72,7 +76,6 @@ def printOutput(data):
         printJSON(data)
     else:
         printTable(data)
-
 
 #
 def show_storage():
@@ -139,6 +142,7 @@ def show_raid():
         return result
     else:
         print( "No RAID Arrays configured!" )
+        return None
 
 #
 def show_cpuUtilization():
