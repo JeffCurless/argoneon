@@ -344,7 +344,9 @@ def argonsysinfo_listhddusage():
 
             outputobj[curdev]["used"]         += int(infolist[2])
             outputobj[curdev]["total"]        += int(infolist[1])
-            outputobj[curdev]["percent"]      += int(percent)
+            outputobj[curdev]["percent"]       = round(((outputobj[curdev]["used"]/outputobj[curdev]["total"]) * 100),1)
+            #outputobj[curdev]["percent"]      += int(percent)
+    
     return outputobj
 
 def argonsysinfo_kbstr(kbval, wholenumbers = True):
