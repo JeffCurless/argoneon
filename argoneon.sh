@@ -361,3 +361,7 @@ $versioninfoscript
 echo 
 echo "Use '$configcmd' to configure device"
 echo
+
+echo
+echo "Make sure that the I2C bus is enabled, use raspi-config and change the setting under Interface Options"
+echo
