@@ -1,6 +1,6 @@
 [Unit]
 Description=Argon One Fan and Button Service
-After=multi-user.target
+After=boot-complete.target
 [Service]
 Type=simple
 Restart=always
