@@ -232,7 +232,6 @@ def display_loop(readq):
         prevscreen = curscreen
         curscreen = screenenabled[screenid]
 
-        print( curscreen )
         if screenjogtime == 0:
             # Resets jogflag (if switched manually)
             screenjogflag = 0
@@ -390,9 +389,9 @@ def display_loop(readq):
             try:
                 oled_loadbg("bgram")
                 tmpraminfo = argonsysinfo_getram()
-                oled_writetextaligned(tmpraminfo[0], stdleftoffset, 8, oledscreenwidth-stdleftoffset, 1, fontwdReg)
+                oled_writetextaligned(tmpraminfo["percent"]+"%", stdleftoffset, 8, oledscreenwidth-stdleftoffset, 1, fontwdReg)
                 oled_writetextaligned("of", stdleftoffset, 24, oledscreenwidth-stdleftoffset, 1, fontwdReg)
-                oled_writetextaligned(tmpraminfo[1], stdleftoffset, 40, oledscreenwidth-stdleftoffset, 1, fontwdReg)
+                oled_writetextaligned(tmpraminfo["gb"]+"GB", stdleftoffset, 40, oledscreenwidth-stdleftoffset, 1, fontwdReg)
                 needsUpdate = True
             except:
                 logError( "Error processing information for RAM display")
