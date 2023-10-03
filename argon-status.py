@@ -50,6 +50,12 @@ def printTable(data):
     headers = data.get('headers', None)
     values = data.get('values', None)
 
+    if values == None:
+        return
+
+    if len(values) == 0:
+        return
+
     if title:
         print( f"\n{title}")
 
