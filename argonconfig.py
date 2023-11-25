@@ -15,9 +15,9 @@ def setOLEDDefaults(config):
         config['OLED'] = {}
 
     if not 'screenduration' in config['OLED'].keys():
-        config['OLED']['screenduration'] = '30';
+        config['OLED']['screenduration'] = '40';
     if not 'screensaver' in config['OLED'].keys():
-        config['OLED']['screensaver'] = '120'
+        config['OLED']['screensaver'] = '30'
     if not 'screenlist' in config['OLED'].keys():
         config['OLED']['screenlist'] = 'clock cpu storage bandwidth raid ram temp ip'
     if not 'enabled' in config['OLED'].keys():
