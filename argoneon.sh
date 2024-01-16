@@ -73,7 +73,7 @@ then
         echo "Unsupported Ubuntu verison: " ${pretty_name}
         exit
     fi
-elif $(echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' /etc/os-release &> /dev/null); [ $? -eq 0 ]
+elif $(echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' -e 'bookworm' /etc/os-release &> /dev/null); [ $? -eq 0 ]
 then
         echo "Installing on RaspberryPI OS"
         pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
@@ -121,7 +121,10 @@ if [ $? -eq 0 ]
 then
     # Enable i2c and serial
     sudo raspi-config nonint do_i2c 0
-    sudo raspi-config nonint do_serial 2
+    if [ "$CHECKPLATFORM" = "Manjaro" ]
+    then
+        sudo raspi-config nonint do_serial 2
+    fi
 fi
 
 # Fan Setup
