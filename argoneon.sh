@@ -73,10 +73,19 @@ then
         echo "Unsupported Ubuntu verison: " ${pretty_name}
         exit
     fi
-elif $(echo ${pretty_name} | grep -q -F -e 'Raspbian' -e 'bullseye' -e 'bookworm' /etc/os-release &> /dev/null); [ $? -eq 0 ]
+elif $(echo ${pretty_name} | grep -q -F -e 'Debian' -e 'Raspbian' /etc/os-release &> /dev/null); [ $? -eq 0 ]
 then
-        echo "Installing on RaspberryPI OS"
+    if $(echo ${pretty_name} | grep -q -F -e 'bullseye' /etc/os-release &> /dev/null); [ $? -eq 0 ]
+    then
+        echo "Installing on Debian/RaspberryPI OS Bullseye"
         pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
+    elif $(echo ${pretty_name} | grep -q -F -e 'bookworm' /etc/os-release &> /dev/null); [ $? -eq 0 ]
+        echo "Installing on Debian/RaspberryPI OS Bookworm"
+        pkglist=(raspi-gpio python3-rpi-lgpio python3-smbus i2c-tools python3-psutil curl smartmontools)
+    else
+        echo "Unsupported Debian/Raspbian verison: " ${pretty_name}
+        exit
+    fi
         CHECKPLATFORM="Raspbian"
 elif $(echo ${pretty_name} | grep 'Manjaro' &>/dev/null); [ $? -eq 0 ]
 then
