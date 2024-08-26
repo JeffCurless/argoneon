@@ -80,6 +80,7 @@ then
         echo "Installing on Debian/RaspberryPI OS Bullseye"
         pkglist=(raspi-gpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools)
     elif $(echo ${pretty_name} | grep -q -F -e 'bookworm' /etc/os-release &> /dev/null); [ $? -eq 0 ]
+    then
         echo "Installing on Debian/RaspberryPI OS Bookworm"
         pkglist=(raspi-gpio python3-rpi-lgpio python3-smbus i2c-tools python3-psutil curl smartmontools)
     else
