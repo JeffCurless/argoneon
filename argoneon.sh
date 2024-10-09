@@ -69,6 +69,10 @@ then
     then
 	echo "Installing on Ubuntu version 23.04"
 	pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools raspi-config)
+    elif [ "${version}" == "24.04" ]
+    then
+        echo "Installing on Ubuntu version 24.04"
+	pkglist=(python3-lgpio python3-rpi.gpio python3-smbus i2c-tools python3-psutil curl smartmontools raspi-config)
     else
         echo "Unsupported Ubuntu verison: " ${pretty_name}
         exit
